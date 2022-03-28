@@ -1,0 +1,63 @@
+---
+title: "PS_P"
+author: "Earnest_Salgado"
+date: "29/03/2020"
+output: 
+  pdf_document:
+    number_sections: yes
+  html_document:
+    df_print: paged
+urlcolor: blue
+---
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+```
+
+<!-- .Rmd files use  markdown, a text mark up language, to provide formating.--> 
+<!--Text include within these strange arrows are comments and will not show up when you knit-->
+
+# Front matter
+This submission is my work alone and complies with the 30535 integrity policy.
+
+Add your initials to indicate your agreement: **GATW**
+
+Add your collaborators: **Earnest_Salgado**
+
+Late coins used this pset: 0. Late coins left: X. 
+<!--You may use up to two for a given assignment.)-->
+
+# Question 1
+
+```{r}
+trip_data <- read.csv('trips_mcma.csv')
+```
+
+Trying commands:
+```{r}
+print(trip_data)
+```
+
+
+```{r}
+head(trip_data)
+```
+
+
+```{r}
+str(trip_data)
+```
+
+
+```{r}
+glimpse(trip_data) 
+```
+
+```{r}
+View(trip_data) 
+```
+
+```{r}
+summary(trip_data)
+```
+
+First, we consider that the following functions are redundant: 'print()', 'str()' and 'glimpse()'. In the three cases, the functions show: number of observations, number of columns and the name of the variables. In the case of 'str()' it only shows the information for some observations. In the case of 'print()' and 'glimpse()' both show the information for all the observations oin the data. Finally, 'Head()' shows the same information but only shows information for 6 observations.

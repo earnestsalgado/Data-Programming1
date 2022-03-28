@@ -1,0 +1,383 @@
+---
+title: "Skills Problem Set IV"
+author: "Earnest Salgado"
+date: "05/04/2021"
+output: 
+  pdf_document:
+    number_sections: yes
+  html_document:
+    df_print: paged
+urlcolor: blue
+---
+```{r message=FALSE, warning=FALSE}
+rm(list = ls())
+library(tidyverse)
+library(tidyr)
+```
+
+<!-- .Rmd files use  markdown, a text mark up language, to provide formating.--> 
+<!--Text include within these strange arrows are comments and will not show up when you knit-->
+
+This submission is my work alone and complies with the 30535 integrity policy.
+
+Add your initials to indicate your agreement: **ES**
+
+Add your collaborators: **GATW**
+
+Late coins used this pset: 0. Late coins left: 9. 
+<!--You may use up to two for a given assignment.)-->
+
+# Tidy
+## Tidy data with pivot_wider() and pivot_longer() (25 points) 
+<!--(Notice the use of two `##`)-->
+
+1. The data set billboard inside tidyr. Has the song rankings for Billboard top 100 in the year 2000. Is this data tidy? If not, identify the problem and solve it. Be careful with missing values, do we need them in the final data set or not?
+
+There are three interrelated rules which make a dataset tidy:
+
+1. Each variable must have its own column.
+2. Each observation must have its own row.
+3. Each value must have its own cell.
+
+As we observe billboard, it does not meet these three criteria so we cannot consider it tidy. In this dataset, the column header are the values: the week numbers. This violates 1 and 2 above. We need to assign the week numbers a column of its own and the values, the ranks, a column of it own. To tidy this dataset, we first gather together all the week columns and the column names give the week and the values become the ranks.
+
+In regards to missing values, we use na.rm to drop the missing values from the gather columns. The missing values represent weeks that the song wasn’t a part of the charts on Billboard 100, so they can be safely dropped.
+```{r message=FALSE, warning=FALSE, eval=TRUE}
+billboard %>% as_tibble()
+glimpse(billboard)
+```
+```{r message=FALSE, warning=FALSE, eval=TRUE}
+library(dplyr)
+billboard.newdf <- billboard %>% gather(week, rank, wk1:wk76, na.rm = TRUE)
+billboard.newdf <- arrange(billboard.newdf, artist, track)
+```
+
+```{r message=FALSE, warning=FALSE, eval=TRUE}
+billboard.df <- billboard.newdf %>% mutate(
+  week = parse_number(week),
+  date = as.Date(date.entered) + 7*(week - 1))
+  
+billboard.df <- billboard.df[c("artist", "track", "date", "week", "rank")]
+head(billboard.df)
+```
+
+2. The data set fish_encounters inside tidyr shows information about different monitors that capture fish swimming down a river.
+  1. Is this data tidy? If not, identify the problem and solve it.
+  
+No, the data is not tidy. The column headers are not variables, and the variables listed under 'Station' are scattered across multiple rows. Under the column fish, it does show ID numbers for different tagged fish, but we could not see from the initial data set up how the fish is monitored by station as it swims down the river. We can use pivot_wider to fix this below:
+```{r message=FALSE, warning=FALSE, eval=TRUE}
+fish_encounters %>% as_tibble()
+glimpse(fish_encounters)
+sapply(fish_encounters, class)
+```
+
+```{r message=FALSE, warning=FALSE, eval=TRUE}
+fish_encounters$fish <- as.character(fish_encounters$fish)
+encounters_fish <- fish_encounters %>% 
+  pivot_wider(names_from = station, values_from = seen)
+encounters_fish[is.na(encounters_fish)] <- 0
+
+```
+
+  2. Which kind of missing values does this data has? What do they mean?
+
+In regards to missing values, we use is.na to populate the missing values with zeroes. The missing values represent when the fish was not detected at that particular station.
+
+3. The data set us_rent_income inside tidyr shows income and rent in 2017 from the American Community Survey. Is this data tidy? If not, identify the problem and solve it. How is this case different from the ones we have seen so far?
+
+This dataset as well is also unsurprisingly, not tidy. Essentially each observation (for example income and rent estimates for Alabama) is on multiple rows, and the variable column is not a true variable in that it serves as just a header for the true variables, income and rent. We can also use pivot_wider to fix the data here.
+```{r message=FALSE, warning=FALSE, eval=TRUE}
+us_rent_income %>% as_tibble()
+glimpse(us_rent_income)
+sapply(us_rent_income, class)
+```
+
+```{r message=FALSE, warning=FALSE, eval=TRUE}
+new_usrentincome <- us_rent_income %>%
+  select(-moe) %>%
+  pivot_wider(names_from = variable, values_from = estimate) %>%
+  drop_na()
+```
+
+4. pivot_longer() and pivot_wider() are not perfectly symmetrical. Carefully consider the following example. Why do we need quotes on the arguments names_to and values_to, but not in names_from and values_from?
+
+The general rule is if you’re identifying an existing column (e.g., game), do not quote. If you’re talking about a column that does not currently exist (e.g., player in new tibble), quote it. Thus, We do not have to quote arguments for names_from and values_from because they already exist in our data. You have to quote any argument to values_to because its referencing a column that does not exist.
+```{r message=FALSE, warning=FALSE, eval=TRUE}
+soccer <- tibble(
+  game = c("Real Sociedad", "Real Sociedad", "Huesca", "Huesca"),
+  player = c("Messi", "Griezmann", "Messi", "Griezmann"),
+  goals = c(2,1,2,1)
+)
+soccer %>%
+  pivot_wider(names_from = player, values_from = goals) %>%
+  pivot_longer(Messi:Griezmann,
+               names_to = "player",
+               values_to = "goals")
+```
+
+5. This code fails. Explain the error message. How could it be fixed?
+
+The code fails because tidyverse functions will interpret numbers without quotes or backticks, like 1999 and 2000, as column numbers. In this case, pivot_longer() tries to select the 1999th and 2000th column of the data frame. To select the columns 1999 and 2000, the names must be surrounded in backticks (  `) or as strings.
+```{r message=FALSE, warning=FALSE, eval=TRUE}
+table4a %>%
+  pivot_longer(`1999`:`2000`,
+               names_to = "year",
+               values_to = "cases")
+```
+
+6. Why does pivot_wider fails on this tibble? Add a new column to address the problem and show that pivot_wider works on your new update dataset.
+
+Widening this data frame using pivot_wider() produces columns that are lists of numeric vectors because the name and key columns do not uniquely identify rows. In particular, there are two rows with values for the goals of “Messi”.
+
+We could solve the problem by adding a row with a distinct observation count for each combination of player and game.
+```{r message=FALSE, warning=FALSE, eval=TRUE}
+soccer <- tribble(
+  ~player, ~game, ~goals,
+  "Messi", "Real Sociedad", 2,
+  "Messi", "Huesca", 2,
+  "Messi", "Real Sociedad", 0,
+  "Messi", "Huesca", 1,
+  "Griezmann", "Real Sociedad", 1,
+  "Griezmann", "Huesca", 1
+)
+football <- soccer %>%
+  group_by(player, game) %>%
+  mutate(obs = row_number()) %>%
+  pivot_wider(names_from = game, values_from = goals)
+
+```
+
+7. Tidy the pivot table below. Do you need to make it wider or longer? What are the variables?
+
+We should use pivot_longer() to create a longer table. Specifically, we can combine "female" and "male" into one variable, "sex". Thus, we would have three variables that are unique combinations of sex and pregnancy status: pregnant, sex, and count.
+
+Since males will never have a yes count for pregnancy, we can simply remove this observation.
+```{r message=FALSE, warning=FALSE, eval=TRUE}
+preg <- tribble(
+  ~pregnant, ~male, ~female,
+  "yes", NA, 10,
+  "no", 20, 12
+)
+longer_tidy_preg <- preg %>%
+  pivot_longer(c(male, female), names_to = "sex", values_to = "count", values_drop_na = TRUE) %>%
+  arrange(count)
+longer_tidy_preg
+```
+
+Conversely, we can also use gather() the sex variable. In terms of style and being concise, I would prefer this code syntax.
+```{r}
+preg %>% 
+  gather(male, female, key="gender", value="Number")
+```
+
+8. What do the extra and fill arguments do in separate()? Hint: experiment with the various options for the following two data sets
+
+The extra argument tells separate() what to do if there are additional pieces, and the fill argument tells it what to do if there are less pieces than expected. By default, separate() drops extra values with a warning.
+
+```{r message=TRUE, warning=TRUE, eval=TRUE}
+tibble(x = c("a,b,c", "d,e,f,g", "h,i,j")) %>%
+  separate(x, c("one", "two", "three"))
+tibble(x = c("a,b,c", "d,e", "f,g,i")) %>%
+  separate(x, c("one", "two", "three"))
+```
+
+Adding the argument, extra = "drop", gives same result as above without the warning message.
+```{r message=TRUE, warning=TRUE, eval=TRUE}
+tibble(x = c("a,b,c", "d,e,f,g", "h,i,j")) %>%
+  separate(x, c("one", "two", "three"), extra = "drop")
+```
+
+Further experimenting with extras, extra = "merge" gives the extra values unsplit, so "f,g" appears in column three.
+```{r message=TRUE, warning=TRUE, eval=TRUE}
+tibble(x = c("a,b,c", "d,e,f,g", "h,i,j")) %>%
+  separate(x, c("one", "two", "three"), extra = "merge")
+```
+
+The default for fill is similar to those in separate(); it fills columns with missing values but emits a warning. In this example, the 2nd row of column three is NA.
+
+Alternative options for fill are "right", to fill with missing values from the right, but without a warning. The same goes for fill = "left", except missing values are filled from the left and the NA value shifts accordingly.
+```{r message=TRUE, warning=TRUE, eval=TRUE}
+tibble(x = c("a,b,c", "d,e", "f,g,i")) %>%
+  separate(x, c("one", "two", "three"), fill = "right")
+
+tibble(x = c("a,b,c", "d,e", "f,g,i")) %>%
+  separate(x, c("one", "two", "three"), fill = "left")
+
+```
+
+
+## tidying case study (30 pts)
+1. In this WHO case study in Ch. 12.6 Hadley set na.rm = TRUE just to make it easier to check that we had the correct values.
+  1. Are there implicit missing values? Use a command you learned in the tidy data slides/videos. If there are implicit missing values, how many rows? If not, show how you know that there are not.
+
+By first looking at the who dataset, we observe there is a lot of potential variables to unpack just under the "key" variable. We can claim there is implicit missing values by saying this dataset doesn't have any reported cases for males, or by age.
+
+First, lets tidy the data and introduce a key to capture the column names that are actually values. 
+```{r message=TRUE, warning=TRUE}
+who
+who_tidy <- who %>% 
+  pivot_longer(
+    cols = new_sp_m014:newrel_f65, 
+    names_to = "key", 
+    values_to = "cases", 
+    values_drop_na = TRUE
+  )
+who_tidy
+```
+
+Using na.rm = TRUE depends on how the missing values are represented in this dataset. We'd like to determine if a missing value represents that there were no cases of TB or whether it means that the WHO does not have any data on total number of TB cases. We know from Chapter 12.5 in the textbook that if there are no explicit 0 values in the data, then missing values may be used to indicate no cases. However, if there are both explicit and implicit missing values, then it suggests that missing values are being used to represent different things. If that were the case it is likely that explicit missing values would mean none or zero cases, and implicit missing values would mean no data on the number of cases.
+
+First, we check for the presence of zeros in the data.
+```{r message=TRUE, warning=TRUE, eval=TRUE}
+who_tidy %>%
+  filter(cases == 0) %>%
+  nrow()
+```
+  2. How many country-year pairs are explicitly missing TB data?
+To answer this question, it's beneficial to check if all values for a (country, year) are missing, or simply just a portion of the values.
+```{r message=TRUE, warning=TRUE}
+pivot_longer(who, c(new_sp_m014:newrel_f65), names_to = "key", values_to = "cases") %>%
+  group_by(country, year) %>%
+  mutate(prop_missing = sum(is.na(cases)) / n()) %>%
+  filter(prop_missing > 0, prop_missing < 1)
+```
+
+From the results above, it looks like it is possible for a (country, year) row to contain only some of its total missing values.
+
+2. In this WHO case study in Ch.12.6, what's the difference between an NA and zero?
+
+The presence of these zeros in the who dataset shows that cases of zero TB are explicitly entered in the data as "0", and missing values "NA" represents missing data about TB cases.
+
+We also can check for implicit missing values. Implicit missing values are (year, country) combinations that do not appear in the data.
+```{r message=TRUE, warning=TRUE, eval=TRUE}
+nrow(who)
+who %>% 
+  complete(country, year) %>%
+  nrow()
+```
+Since the number of complete cases of (country, year) is greater than the number of rows in who, there are some implicit values. 
+
+OK, but how can we identify these implicit values? We employ the anti_join() function:
+```{r message=TRUE, warning=TRUE, eval=TRUE}
+anti_join(complete(who, country, year), who, by = c("country", "year")) %>% 
+  select(country, year) %>% 
+  group_by(country) %>% 
+  summarise(min_year = min(year), max_year = max(year))
+```
+All of these refer to (country, year) combinations for years prior to the existence of the actual country. For example, Timor-Leste achieved independence in 2002, so years prior to that are not included in the data.
+
+To summarize:
+
+0 = no cases of TB.
+Explicit missing values (NAs) = missing data for (country, year) combinations in which the country existed in that year.
+Implicit missing values represent missing data in periods when a particular country did not exist in that year.
+
+3. What happens if you neglect the mutate() step?
+
+This question refers to missing a step while tidying the who dataset. Technically, by neglecting the mutate step you will have one less column in the data instead of a split between "new" and "type".
+```{r message=TRUE, warning=TRUE, eval=TRUE}
+who_tidy2 <- who_tidy %>% 
+  mutate(names_from = stringr::str_replace(key, "newrel", "new_rel"))
+who_tidy3 <- who_tidy2 %>% 
+  separate(key, c("new", "type", "sexage"), sep = "_")
+```
+If we filter our new dataframe for "newrel_", we see that sexage is missing completely, and type = m014.
+```{r message=TRUE, warning=TRUE, eval=TRUE}
+who_tidycheck <- who_tidy %>%
+  separate(key, c("new", "type", "sexage"), sep = "_")
+filter(who_tidycheck, new == "newrel") %>% head()
+```
+4. Health outcomes are often sexed. As in certain maladies are more associated with males or females. Using the tidied WHO data, you will make an informative visualization to address the question: "To what extent is Tuberculosis associated with a specific sex and has this changed from 1997 onward?"
+  1. For each country, year, and sex compute the total number of cases of TB.
+```{r message=FALSE, warning=FALSE, eval=TRUE}
+who_tidy4 <- who_tidy3 %>%
+  select(-new, -iso2, -iso3) %>%
+  separate(sexage, c("sex", "age"), sep = 1)
+
+who_tidy4 %>%
+  group_by(country, year, sex) %>%
+  filter(year > 1995) %>%
+  summarise(cases = sum(cases)) %>%
+  unite(country_sex, country, sex, remove = FALSE) 
+```
+  
+  2. Using raw values is probably not going to provide clear evidence. Why not?
+
+To adequately address the question: "To what extent is Tuberculosis associated with a specific sex and has this changed from 1997 onward?" we will need to bring in a plot to visualize the data and pull from it clear associations.
+
+  3. For each country-year, compute the ratio of male to female patients.
+  
+```{r}
+who_tidy4 %>% 
+  group_by(sex, year, country) %>% 
+  summarise(mean=mean(cases)) %>% 
+  ggplot(aes(x=year, y=mean, colour=sex))+
+  geom_point()+
+  geom_jitter()
+```
+
+
+```{r}
+who_tidy4 %>% 
+  group_by(sex, year) %>% 
+  summarise(meansex=sum(cases)) %>%
+  ungroup() %>% 
+  group_by(year) %>% 
+  mutate(tot=sum(meansex)) %>% 
+  ungroup() %>% 
+  mutate(ratio=meansex/tot) %>% 
+  filter(sex=="f") %>% 
+  ggplot(aes(x=year, y=ratio, colour=sex))+
+  geom_line()
+```
+
+  4. Producing these ratios by year (ignoring county) is probably a bad idea. Why?
+
+Result: 1. Make a plot that address the main question (To what extent is tuberculosis associated with a specific sex and has this changed from 1997 onward?) Think carefully which kind of plot you are going to use, you want to uncover the general pattern but also learn specifics about your data. 
+  1. Write a quick summary of lessons learned from your final data visualization. What is the general conclusion from this plot? Did you find any other variable information from your plot?
+
+A small multiples plot faceting by country would probably be very difficult and unclear given the number of countries in the data. Focusing on those countries with the largest changes or absolute magnitudes of TB cases after providing the context above is another option.
+```{r}
+#countries with the most cases of TB
+who_tidy4 %>%
+  group_by(country, year) %>% 
+  summarise(n=sum(cases)) %>% 
+  ungroup() %>% 
+  group_by(country) %>% 
+  mutate(total_country=sum(n)) %>% 
+  filter(total_country>1000000) %>% 
+  ggplot(aes(x=year,y=n,colour=country))+
+  geom_line()
+```
+
+## Unseen untidy data (15 pts)
+1. The data set world_bank_pop is messy. Tidy it, show each of your steps and at the end write a short paragraph of what you just did.
+
+```{r}
+new_worldbankpop <- world_bank_pop %>%
+  gather(year, value, `2000`:`2017`, na.rm = TRUE) %>%
+  pivot_wider(names_from = indicator, values_from = value) %>%
+  arrange(country)
+
+new_worldbankpop %>% as.tibble()
+
+```
+
+# Data Types Strings (15 pts)
+*Hint: try lots of test cases to be sure you get it right*
+1. Write a regular expression to match any superhero name that ends with man and that is shorter or equal to 8 characters. This means it should be able to match Batman but not Spiderman (be careful I don't want it to match a regular man.) Prove your regular expression works with three examples:
+
+
+2. Given the corpus of fruits in stringer::fruit, create regular expressions that find all fruits that:
+  1.Ends with "t".
+  2. Starts with "h"
+  3. Are exactly 6 letters long. (Don't use str_length()!)
+  4. Are 10 letters or longer. (Note: including all the output here would make grading difficult. Instead, use sum(str_detect(stringr::words,regex)) to count the number of strings that match each of the patterns above)
+  
+3. Create regular expressions to find all words in stringr:words that meet the following criteria. In addition, please provide two test cases where your regular expression returns a match and two test cases that do not return a match.
+  1. Start with an a or an o.
+  2. That only contain contain consonants. (Hint: thinking about matching "not"- vowels)
+  3. That are berries, i.e., contain the word berry
+  4. End with ine or een.
+
+4. Show how telephone numbers are written in your country with three examples. Create a regular expression that will match telephone numbers are commonly ass written in your country.

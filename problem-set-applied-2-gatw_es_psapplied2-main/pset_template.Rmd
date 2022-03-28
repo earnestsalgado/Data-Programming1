@@ -1,0 +1,110 @@
+---
+title: "Applied Problem Set 2"
+author: "Earnest Salgado, Guillermo Antonio Trefogli Wong"
+date: "05/05/2020"
+output: 
+  pdf_document:
+    number_sections: yes
+  html_document:
+    df_print: paged
+urlcolor: blue
+always_allow_html: true
+---
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+```
+
+<!-- .Rmd files use  markdown, a text mark up language, to provide formating.--> 
+<!--Text include within these strange arrows are comments and will not show up when you knit-->
+
+# Front matter
+This submission is my work alone and complies with the 30535 integrity policy.
+
+Add your initials to indicate your agreement: **ES_GATW**
+
+Add your collaborators: **ES_GATW**
+
+Late coins used this pset: 0. Late coins left: X. 
+<!--You may use up to two for a given assignment.)-->
+
+# Part I
+Read this (https://features.propublica.org/driven-into-debt/chicago-ticket-debt-bankruptcy/) article and this (https://www.propublica.org/article/chicago-vehicle-sticker-law-ticket-price-hike-black-drivers-debt) shorter article. Melissa Sanchez will be our second guest speaker (Monday May 10 at 3:30 pm). If you are curious to learn more, this (https://www.propublica.org/series/driven-into-debt) page has all of the articles that ProPublica has done on this topic.
+
+## Read in one percent sample (10 points) 
+<!--(Notice the use of two `##`)-->
+1. To help you get started, the repository contains the file parking_tickets_one_percent.csv which gives you a one percent sample of tickets. We constructed the sample by selecting ticket numbers that end in 01. How long does it take to read in this file? (Don't time your code with your watch, find a function to measure how long it takes the command to run.) Use test_that to check that there are 287458 rows.
+
+2. How many megabytes is the file? Using math, how large would you predict the full data set is?
+
+3. How are the rows ordered?
+
+4. For each column, how many rows are NA? Write a parsimonious command which calculates this. You will not get credit for a command which writes out every variable name.
+
+5. Three variables are missing much more frequently than the others. Why? (Hint: look at some rows and read the data dictionary written by ProPublica, inside the repository data_dictionary.txt)
+
+```{r}
+# YOUR CODE GOES HERE  (Please delete)
+ggplot(mpg, aes(manufacturer)) + geom_bar()
+```
+
+## Cleaning the data and benchmarking (10 points)
+1. How many tickets were issued in tickets_1pct in 2017? How many tickets does that imply were issued in the full data in 2017? How many tickets are issued each year according to the ProPublica article? Do you think that there is a meaningful difference?
+
+2. What are the top 20 most frequent violation types? Make a bar graph to show the frequency of these ticket types. Make sure to format the graph such that the violation descriptions are legible and no words are cut off.
+```{r}
+# YOUR CODE GOES HERE  (Please delete)
+ggplot(mtcars, aes(factor(cyl), mpg)) + geom_violin(aes(fill=mpg))
+```
+
+## Joins - unit (10 points)
+The data tell us what unit of city government issued the ticket, but we need to merge on a crosswalk. 
+
+1. For how many tickets is unit missing?
+
+2. Read in unit_key.csv. How many units are there?
+
+3. Join unit key to the tickets data. How many rows in the tickets data have a match in the unit table? How many rows are unmatched? How many rows in the unit table have a match in the tickets data? How many do not?
+
+4. Who issues more tickets - Department of Finance or Chicago Police? Within Chicago Police, what are the top 5 departments that are issuing the most tickets? Be careful what your group by here and avoid columns with ambiguities.
+
+## Joins - ZIP code (15 points)
+1. Download recent census data by ZIP for Chicago with population, share black and median household income. chi_zips.csv
+
+2. Clean vehicle registration ZIP and then join the Census data to the tickets data
+
+3. Replicate the key findings in the ProPublica by ranking ZIPs by the number of unpaid tickets per resident by ZIP. What are the names of the three neighborhoods with the most unpaid tickets?
+
+4. (extra credit) Make #3 into a map
+
+# Part II
+## Understanding the structure of the data (20 points)
+1. Most violation types double in price if unpaid. Does this hold for all violations? If not, find all violations with at least 100 citations that do not double. How much does each ticket increase if unpaid?
+
+2. Many datasets implicitly contain information about how a case can progress. Draw a diagram explaining the process of moving between the different values of notice_level (if you draw it on paper, take a picture and include the image using knitr::include_graphics). Draw a second diagram explaining the different values of ticket_queue. If someone contests their ticket and is found not liable, what happens to notice_level and to ticket_queue? Include this in your drawings.
+
+3. Are any violation descriptions associated with multiple violation codes? If so, which descriptions have multiple associated codes and how many tickets are there in each description-code pair? (Hint: this can be done in just four lines of code)
+
+4. Are there any violation codes associated with multiple violation descriptions? If so, which codes have multiple associated descriptions and how many tickets are there in each description-code pair?
+
+5. Review the 50 most common violation descriptions. Do any of them seem to be redundant? If so, can you find a case where what looks like a redundancy actually reflects the creation of a new violation code?
+
+## Revenue increase from "missing city sticker" tickets (35 points)
+Some of the other articles on the Propublica website discuss an increase in the dollar amount of the ticket for not having a city sticker.
+
+1. What was the old violation code and what is the new violation code? How much was the cost of an initial offense under each code? (You can ignore the ticket for a missing city sticker on vehicles over 16,000 pounds.)
+
+2. Combining the two codes, how have the number of missing sticker tickets evolved over time?
+
+3. Using the dates on when tickets were issued, when did the price increase occur?
+
+4. The City Clerk said the price increase would raise by $16 million per year. Using only the data available in the calendar year prior to the increase, how much of a revenue increase should she have projected? Assume that the number of tickets of this type issued afterward would be constant and you can assume that there are no late fees or collection fees, so a ticket is either paid at is face value or is never paid.
+
+5. What happened to repayment rates on this type of ticket in the calendar year after the increase went into effect? If the City had not started issuing more of these tickets, what would its change in revenue have been?
+
+6. Make a plot with the repayment rates on not city sticker tickets and a vertical line at when the new policy was introduced. Interpret. 
+
+7. Still focusing on the period before the policy change, suppose that the City Clerk were committed to getting revenue from tickets rather than other sources. What ticket types would you as an analyst have recommended she increase and why? Name up to three ticket types. Assume there is no behavioral response (i.e. people continue to commit violations at the same rate and repay at the same rate), but consider both ticket numbers and repayment rates.
+
+8. In the previous question, the City Clerk was only optimizing gross revenue. Melissa Sanchez argue that ticketing is inherently regressive. Let's say the City Clerk took this critique to heart and determined to raise ticket prices for violations that would affect households in high income zip codes more than low income zip codes.
+  a. What ticket types would you as an analyst recommend she increase and why? Make a data visualization to support your argument.
+  b. If she raises the ticket price by $80 for each of these tickets, how much additional revenue can she expect? Assume there is no behavioral response (i.e. people continue to commit violations at the same rate and repay at the same rate).

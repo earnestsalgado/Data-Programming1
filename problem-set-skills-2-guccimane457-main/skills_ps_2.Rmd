@@ -1,0 +1,659 @@
+---
+title: "Skills Problem Set 2"
+author: "Fernanda Sobrino"
+date: "3/18/2021"
+output: 
+  pdf_document:
+    number_sections: yes
+  html_document:
+    df_print: paged
+urlcolor: blue
+---
+
+Due Thursday April 15, midnight Central Time.
+
+Upload your pdf to canvas. 
+
+Push your code to your repo on Github Classroom. 
+
+This submission is my work alone and complies with the 30535 integrity policy.
+
+Add your initials to indicate your agreement: **ES**
+
+Add names of anyone you discussed this problem set with: 
+
+**Guillermo Antonio Trefogli Wong**
+
+Late coins used this pset: 0. Late coins left after submission: 9. 
+
+Name your submission files `skills_ps_2.Rmd` and `skills_ps_2.pdf`. (10 points)
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(dslabs)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 1 git concepts (10 points)
+
+1. git is software for distributed version control. List 4 benefits of distributed version control.
+```{r}
+# Changes to files are tracked between computers,  so all the developers could 
+# keep track of what was happening to files at any given time.
+
+# Branching and merging can happen automatically and quickly.
+
+# Developers can work on code offline. This increases productivity
+
+# Multiple copies of the software eliminate reliance on a single backup file.
+
+```
+
+For the next questions, we will reference “Learn git concepts, not commands”. Read sections from “Overview”
+through “Branching”. It is written with git command line in mind, but github desktop has all these features
+as well. Focus on the concepts (ie understand the pictures). Save some changes to your homework and make
+sure its being tracked by git with github deskop.
+
+i. What is the remote repository for this homework? Be as specific as possible.
+```{r}
+# For my specific homework, my remote repository is linked below:
+# https://github.com/datasci-harris/problem-set-skills-2-guccimane457
+
+# answer source: https://github.com/UnseenWizzard/git_training
+# Github Classroom is the remote repository for this homework.
+# The remote repository is where you send your changes when you want to share
+# them with other people, and where you get their changes from. 
+```
+
+ii. How do you add a file to staging in github desktop? (This is subtle, because it happens automatically).
+```{r}
+# After creating a Github account, downloading Github desktop application, 
+# logging into your account...
+
+# then accepting the assignment and your assignment repository has been
+# created in Github...
+
+# We "add" a file to staging in github desktop by working on our assignment 
+# using Rstudio. The assignment files are in pdf and rmd.
+
+# The staging area can hold changes from any number of files that you want to
+# commit as a single snapshot. All your changes now appear in GitHub Desktop.
+# Decide whether they go together in one commit, or need separate commits, and
+# use the blue bars and ticky boxes and unstage or restage the lines.
+
+# answer source: https://jcszamosi.github.io/mcmaster_swc_git_gui/03-create-changes/#:~:text=The%20staging%20area%20can%20hold,commit%20as%20a%20single%20snapshot.&text=All%20your%20changes%20now%20appear,unstage%20or%20restage%20the%20lines.
+
+```
+
+iii. How do you commit an issue to the local repository? (This is not subtle).
+```{r}
+# We commit issues to the local respository with the "commit to main" command,
+# which is also a blue button in the lower left hand corner of Github Desktop.
+# Note that a commit is not automatically transferred to the remote server.
+# If you want to exchange commits with others or share them, use the "Push"
+# command (Ctrl + P). This will push your code to the remote repository.
+
+# answer source: https://www.git-tower.com/learn/git/commands/git-commit/
+```
+
+iv. How does github desktop decide what part of your code to show in the main part of the window?
+```{r}
+# Github desktop decides what part of your code to show in the main part of
+# the window based on your "Current Branch". Branches are used by Github to
+# organize your code as you progress and commit versions of your code. As you 
+# or others make changes, you can create a new branch with a unique name to 
+# separate your or everyones unique changes. 
+
+# answer source: https://thenewstack.io/dont-mess-with-the-master-working-with-branches-in-git-and-github/
+
+```
+
+v. What branch are you on right now? Why?
+```{r}
+# I am on the main branch, where all changes eventually merge back to, and is 
+# the official working version of my project. The main branch is the default
+# branch, and is the one your code will commit to if you have not yet created
+# any new branches (such is the case for me with this pset)
+
+```
+
+vi. If you were to click on “current branch”, type a name and click the “New Branch” button, you would create a new branch.
+a. What would happen to the files in your working directory?
+```{r}
+# The changes locally overwrite the state of the working directory, of the 
+# new branch you have just switched to. Your master branch state is unchanged 
+# and can be restored by git checkout master.
+
+```
+
+b. What would happens in the remote repo?
+```{r}
+# The remote repo also is not affected.
+
+# If you create a "new branch", it shows up in the remote repo
+
+# Git branches are designed to be a fail-safe mechanism for integrating code 
+# and sharing changes between repositories. 
+```
+
+c. What changes, if anything?
+```{r}
+# the branch name (for your new branch)
+
+# You have the option to bring your in-progress work over to the newly created
+# branch. You can also stash your in-progress work on the main branch, leaving
+# it unaffected.
+
+```
+
+d. Why would you want to work on a different branch?
+```{r}
+# As you or others make changes, you can create a different or new branch with
+# a unique name to separate your or everyones unique changes. 
+
+# Git’s branching functionality lets you create new branches of a project to 
+# test ideas, isolate new features, or experiment without impacting the main 
+# project.
+
+# answer source: https://thenewstack.io/dont-mess-with-the-master-working-with-branches-in-git-and-github/
+```
+
+vii. If you created a new branch in the previous step, nice! Experimentation develops your skills and understanding. Now, make sure you are on master as you continue your homework.
+
+# 2 Fun with dplyr
+## 2.1 Debugging mindset (5 points)
+
+1. Why does this code doesn't work?
+```{r, eval = TRUE}
+# the code worked for me after respelling 'my_varıable' to 'my_variable'
+
+my_variable <- 10
+my_variable
+## Error in eval(expr, envir, enclos): object 'my_varıable' not found
+
+```
+
+2. Fix the following code so it works
+```{r, eval = TRUE}
+# library(dsblabs)
+
+# ggplot(dota = polls_us_election_2016) +
+# geom_point(mapping = aes(x = startdate,
+# y = rawpoll_trum))
+# fliter(polls_us_election_2016, cyl = "Florida")
+# filter(diamond, carat > 3)
+
+# FIXED CODE IS BELOW:
+
+library(dslabs)
+view(polls_us_election_2016)
+view(diamonds)
+
+ggplot(data = polls_us_election_2016) + 
+  geom_point(mapping = aes(x = startdate,y = rawpoll_trump))
+filter(polls_us_election_2016, state == "Florida") %>% head(10)
+filter(diamonds, carat > 3) %>% head(1)
+
+```
+
+3. Press Alt (Option) + Shift + K. What happens? How can you get to the same place using the menus?
+```{r}
+# Pressing Alt (Option) + Shift + K in RStudio will pull up the Keyboard
+# Shortcut quick reference popup.
+
+# You can also pull up the keyboard shortcut quick reference popup using the
+# menus by clicking 'Tools' tab, then selecting 'Keyboard Shortcuts Help'
+```
+
+## 2.2 Filter (15 points)
+
+1. Using the polls_us_election_2016 data frame in the dslabspackage find the following
+  1. Polls for the states of Hawaii and Alaska
+```{r, eval = TRUE}
+# we use the "|" sign to include multiple criteria together in our filter
+filter(polls_us_election_2016, state == "Hawaii" | state == "Alaska") %>% 
+  head(10)
+
+```
+
+  2. Polls with sample sizes bigger than 500 people
+```{r}
+filter(polls_us_election_2016, samplesize > 500) %>% head(10)
+```
+
+  3. Polls run by YouGov, Google Consumer Surveys or SurveyMonkey
+```{r, eval = TRUE}
+# library(dplyr)
+# target <- c("Ticker1", "Ticker2", "Ticker3")
+# filter(df, Ticker %in% target)
+
+# code source: https://stackoverflow.com/questions/50687466/filtering-column-by-multiple-values
+
+filter_polls <- c("YouGov", "Google Consumer Surveys", "SurveyMonkey")
+filter(polls_us_election_2016, pollster %in% filter_polls ) %>% head(10)
+
+```
+
+  4. Polls with A+ grade and percentage for Trump less than 30
+```{r, eval = TRUE}
+filter(polls_us_election_2016, grade == "A+", rawpoll_trump < 30)
+
+```
+
+  5. Polls where the adjusted percentage for Clinton is between 40 and 60 percent (inclusive)
+```{r, eval = TRUE}
+filter(polls_us_election_2016, adjpoll_clinton < 60 & adjpoll_clinton > 40) %>% 
+  head(10)
+
+```
+
+  6. Polls where Trump raw winning margin over Clinton is bigger than 10%
+```{r, eval = TRUE}
+filter(polls_us_election_2016, (rawpoll_trump - rawpoll_clinton) > 10) %>% 
+  head(10)
+```
+
+  7. Polls where McMullin percentage is more than 5 %.
+```{r, eval = TRUE}
+filter(polls_us_election_2016, rawpoll_mcmullin > 5, adjpoll_mcmullin > 5) %>% head(10)
+
+```
+
+2. Remember this graph from last problem set?
+```{r, eval = TRUE, echo = TRUE, fig.width =6.5, fig.height=4}
+    ggplot(data = polls_us_election_2016, 
+           mapping = aes(x = startdate, 
+                         y = rawpoll_trump)) +
+        geom_point(aes(color = grade)) +
+        geom_smooth(se = FALSE)
+```
+There is a poll after January where Trump percentage is above 60 with no grade. What poll is that one?
+```{r, eval = TRUE}
+# code source found in 16.1.1 Poll Data: https://rafalab.github.io/dsbook/models.html
+polls_us_election_2016 %>%  
+
+filter(startdate > 2016-01-31, rawpoll_trump > 60, is.na(grade)) 
+```
+
+1. Common bugs: You want to see missing values in a dataframe. You run the following code and get no results. Why is wrong?
+```{r, eval = TRUE}
+filter(polls_us_election_2016, grade == NA)
+# we should use 'is.na' to check whether expression evaluates to NA
+# such as the code below
+filter(polls_us_election_2016, is.na(grade)) %>% 
+  head(5)
+
+```
+
+2. How many polls have missing rawpoll_mcmullin? Why do you think this is happening?
+```{r, eval = TRUE}
+filter(polls_us_election_2016, is.na(rawpoll_mcmullin)) %>% 
+  head(10)
+
+# there are 4,178 observations with polls missing rawpoll_mcmullin. 
+# This large number of polls having missing mcmullin could be because he is an
+# independent party candidate, and minor party candidates are often left out of
+# poll questions.
+# This could also be because mcmullin was not projected to be included on very 
+# many state ballots.
+
+```
+
+3. What happens to observations with missing values in grade when you filter by grade == "A"? Why?
+(Hint: compare "C minus" == "A", "A" == "A", and NA == "A").
+```{r, eval = TRUE}
+# observations with missing values in grade will be excluded when we apply 
+# filter by grade == "A". This is because when we apply filter, we create a
+# subset based on a specific criteria. Any observations within grade that is
+# not equal to "A" is excluded, missing values and all.
+
+filter(polls_us_election_2016, grade == "A") %>% head(10)
+
+```
+
+4. What does NA | TRUE evaluate to? Why?
+```{r, eval = TRUE}
+NA | TRUE
+
+# evaluates as TRUE because the outcome is not ambiguous. using | it looks to 
+# determine a result of NA (ambiguous) OR TRUE (not ambiguous). We know it will
+# evaluate as TRUE since NA is a valid logical object. Where a component of x 
+# or y is NA, the result will be NA if the outcome is ambiguous. 
+```
+
+5. What does FALSE & NA evaluate to? Why?
+```{r, eval = TRUE}
+FALSE & NA
+
+# evaluates as FALSE also because wherever a component of x or y is NA, the 
+# result will be NA if the outcome is ambiguous. Here the outcome is not 
+# ambigous (FALSE). It reads as FALSE AND NA.
+```
+
+## 2.3 Select (10 points)
+
+1. What happens if you include the name of a variable multiple times in a select() call?
+```{r, eval = FALSE}
+# code found in Exercise 5.4.2: https://jrnold.github.io/r4ds-exercise-solutions/transform.html
+
+# The select() call ignores the duplication. Any duplicated variables are only 
+# included once, in the first location they appear. The select() function does 
+# not raise an error or warning or print any message if there are duplicated 
+# variables.
+library("tidyverse")
+
+select(polls_us_election_2016, grade, pollster, grade, pollster, startdate) %>% 
+  head(10)
+```
+
+2. Typically, R is case sensitive, but select helpers ignore case by default. Change the default to return an empty tibble.
+```{r, eval = TRUE}
+# select(polls_us_election_2016, contains("RAW")))
+
+# we include ignore.case = FALSE To change the default behavior 
+select(polls_us_election_2016, contains("RAW", ignore.case = FALSE))
+
+# code source from Exercise 5.4.4: https://jrnold.github.io/r4ds-exercise-solutions/transform.html
+```
+3. Brainstorm as many distinct ways as possible to select rawpoll_clinton, rawpoll_trump, adjpoll_clinton, and adjpoll_trump
+```{r, eval = TRUE}
+# select() then using contains() within it
+select(polls_us_election_2016, contains("clinton") | contains("trump")) %>% 
+  head(10)
+```
+
+```{r, eval = TRUE}
+# specifically selecting variables with 'clinton' or 'trump'
+select(polls_us_election_2016, rawpoll_clinton, rawpoll_trump, adjpoll_clinton,
+       adjpoll_trump) %>% head(10)
+```
+```{r, eval = TRUE}
+# using select() then using ends_with() in it
+select(polls_us_election_2016, ends_with("clinton") | ends_with("trump")) %>%
+  head(10)
+```
+
+# Arrange (5 pts)
+
+1. Sort polls to find the ones where Clintons percentage is the highest. Use %>% head(1) to print just one row.
+```{r, eval = TRUE}
+arrange(polls_us_election_2016, desc(rawpoll_clinton)) %>% head(1)
+# we could similarly complete the same sort for highest % in adjpoll_clinton.
+# arrange(polls_us_election_2016, desc(adjpoll_clinton))
+
+# code source from Exercise 5.3.2: https://jrnold.github.io/r4ds-exercise-solutions/transform.html#arrange-rows-with-arrange
+```
+
+2. Find the 5 polls that interview more people. Only show pollster, samplesize, population, and grade.
+```{r, eval = TRUE}
+Five_polls <- arrange(polls_us_election_2016, desc(samplesize)) %>% head(5)
+
+select(Five_polls, pollster, samplesize, population, 
+       grade) %>% head(10)
+
+# code source from Exercise 5.3.4: https://jrnold.github.io/r4ds-exercise-solutions/transform.html#arrange-rows-with-arrange
+
+```
+
+3. How could you use arrange() to sort all missing values to the start? (Hint use is.na(), you can use any variable with missing values here)
+```{r, eval = TRUE}
+arrange(polls_us_election_2016, desc(is.na(samplesize)), samplesize
+        ) %>% head(10)
+
+# interestingly enough Illinois Basswood Research is the only pollster with NA
+# for samplesize.
+# To put NA values first, we can add an indicator of whether the column has a 
+# missing value. Then we sort by the missing indicator column and the column of 
+# interest. For example, to sort the data frame by departure time (dep_time) in
+# ascending order but NA values first, run the following.
+
+# code source: Exercise 5.3.1: https://jrnold.github.io/r4ds-exercise-solutions/transform.html#arrange-rows-with-arrange
+
+```
+
+
+# 4 Mutate (15 pts)
+
+1. Currently the variables rawpoll_candidate tells the percentage for that candidate. Convert each of them in number of people that pick that candidate. Store them in variables raw_candidate.
+```{r}
+df_raw <- mutate(polls_us_election_2016, 
+       raw_clinton = round((rawpoll_clinton/100)*samplesize),
+       raw_trump = round((rawpoll_trump/100)*samplesize), 
+       raw_johnson = round((rawpoll_johnson/100)*samplesize),
+       raw_mcmullin = round((rawpoll_mcmullin/100)*samplesize)
+       )
+
+```
+
+2. Make a plot to compare samplesize and the sum of your recently created variables for Trump and Clinton.
+```{r, eval = TRUE}
+df_raw <- df_raw %>% mutate(difference = samplesize - (raw_trump - raw_clinton))
+view(df_raw)
+
+ggplot(data = df_raw, mapping = aes(x = difference)) + 
+  geom_histogram(binwidth = 25)
+```
+
+3. We expect that samplesize - (raw_trump + raw_clinton) will be near zero for all polls. Why is this not happening?
+```{r, eval = TRUE}
+# its not happening because there are many missing values in the data.
+# also, this is not happening in some polls because there are voters who chose 
+# note to vote at all or chose either johnson or mcmullin in the samplesize.
+
+```
+
+4. How can you fix the problem in the last graph so that samplesize - (raw_trump - raw_clinton) is closer to zero?
+```{r, eval = TRUE}
+# subtract all other candidates, johnson and mcmullin OR
+# switch equation for difference to be samplesize - (raw_clinton - raw_trump) OR
+# switch equation for difference to be samplesize - (raw_clinton + raw_trump)
+
+df_raw2 <- mutate(df_raw, 
+       raw_clinton = round((rawpoll_clinton/100)*samplesize),
+       raw_trump = round((rawpoll_trump/100)*samplesize), 
+       raw_johnson = round((rawpoll_johnson/100)*samplesize),
+       raw_mcmullin = round((rawpoll_mcmullin/100)*samplesize),
+       difference = samplesize - (raw_clinton + raw_trump)
+       )
+
+view(df_raw2)
+
+ggplot(data = df_raw2, mapping = aes(x = difference)) + 
+  geom_histogram(binwidth = 25)
+
+```
+
+5. Does your fix from the last question solve the problem? If not, discuss what might be happening and why we still see big differences between the sample size and the sum of all the quantities.
+```{r, eval = TRUE}
+# My fix from the last question slightly adjusts the graph where the difference
+# is closer to zero on average, but there seem to be higher counts of non-zero
+# values.
+
+# Essentially the value samplesize - (raw_trump - raw_clinton) would be positive 
+# for any case when voters choose a candidate other than clinton or trump or 
+# are represented as part of the samplesize but not in any of the raw scores
+# (raw_clinton, raw_trump, raw_johnson, raw_mcmullin)
+
+```
+
+6. Find the 7 polls where Johnson percentage is the highest using the ranking function. How do you want to handle ties? Carefully read the documentation for min_rank()
+```{r, eval = TRUE}
+polls_us_election_2016 %>%
+  mutate(rank_order = min_rank(rawpoll_johnson)) %>%
+  arrange(desc(rank_order)) %>%
+  head(7)
+```
+
+
+# 5 Summarize (15 pts)
+
+1. How many polls each company is running? Come up with at least two different ways to get to the same result
+```{r, eval = TRUE}
+pollster_companies <- polls_us_election_2016 %>% 
+  group_by(pollster, grade) %>% 
+  summarise(n_polls = n()) %>% head(10)
+
+polls_us_election_2016 %>%
+  count(pollster) %>% head(10)
+
+pollster_companies
+
+```
+
+2. Calculate average poll size by grade for the state of Florida.
+```{r, eval = TRUE}
+Florida_polls <- polls_us_election_2016 %>%
+  filter(state == "Florida") %>%
+  group_by(grade) %>%
+  summarise(sample_mean = mean(samplesize))
+
+Florida_polls
+```
+
+3. Do all the polls by the same company have the same grade?
+```{r}
+# Yes, all polls by the same company have the same grade. For example, pollster
+# "Google Consumer Surveys" are all exclusively given grade "B".
+
+```
+
+4. Which state has the higher average vote for other (Mcmullin) candidates? Why do you think this the case?
+```{r, eval = TRUE}
+# Utah has the highest average vote for mcmullin as a presidential candidate.
+# This result could be partly due to Republican backlash against Trump following
+# release of a controversial 2005 video showing Trump bragging about obscene 
+# sexual conduct with women (source: http://www.deseretnews.com/article/865664606/Poll-Trump-falls-into-tie-with-Clinton-among-Utah-voters.html?pg=all)
+
+# mcmullin spent a significant amount of time campaigning to Utah voters
+# he was positively accepted by voters and fit in with the political landscape 
+# in Utah in 2016 as a viable conservative candidate alternative to Donald Trump
+
+mcmullin_state <- polls_us_election_2016 %>% 
+  group_by(state, population) %>% 
+  summarise(poll_mcmullin = mean(rawpoll_mcmullin, na.rm = TRUE)) %>%
+  filter(state != "U.S")
+arrange(mcmullin_state, desc(poll_mcmullin)) %>% head(1)
+
+mcmullin_state
+```
+
+5. Find all the states were more than 10 different companies ran polls. Order the results from most polling companies to fewest.
+```{r, eval = TRUE}
+state_pollsters <- polls_us_election_2016 %>% 
+  group_by(state) %>% 
+  summarise(n_polls = n(),
+            n_companies = n_distinct(pollster)) %>%
+  filter(state != "U.S.", n_companies >= 10) %>%
+  arrange(desc(n_companies)) 
+
+state_pollsters
+
+```
+
+6. Calculate the number of poll by grade and type of population. Add your results the max() and min() percentage for Trump that each type of poll has. Report your results so that better grades are at the top of your table.
+```{r, eval = TRUE}
+polls_us_election_2016 %>%
+  group_by(grade, population) %>%
+  summarise(n_grade = n(),
+            n_population = n(),
+            max_trump = max(rawpoll_trump),
+            min_trump = min(rawpoll_trump)) %>%
+  arrange(desc(grade)) %>%
+  head(10)
+
+```
+
+7. How many poll companies are running polls in Alabama and Arkansas? Which of these companies are ONLY running polls in Alabama or Arkansas and how many polls are they running?
+```{r, eval = TRUE}
+# There are 7 different poll companies running polls in Arkansas
+# There are 5 different poll companies running polls in Alabama
+# University of Arkansas
+
+# how to show all the different pollsters in arkansas and alabama?
+
+alabama_arkansas <- polls_us_election_2016 %>% 
+  group_by(state) %>% 
+  summarise(n_polls = n(),
+            n_companies = n_distinct(pollster)) %>%
+  filter(state == "Alabama" | state == "Arkansas") %>%
+  arrange(desc(n_companies))
+
+alabama_arkansas2 <- polls_us_election_2016 %>% 
+  filter(state == "Alabama" | state == "Arkansas") %>%
+  select(state, pollster)
+
+example <- polls_us_election_2016 %>%
+  group_by(pollster) %>%
+  summarise(n_state = n(),
+            n_companies = n_distinct(state)) %>%
+  arrange(desc(n_companies)) 
+
+filter(polls_us_election_2016, state == "Alabama" | state == "Arkansas",
+       rawpoll_trump < 30)
+
+
+```
+
+
+# 6 Practical Application (15 pts)
+1. We are interested in how good different pollsters were at predicting the actual election results. The popular vote result was 48.2% for Clinton and 46.1% for Trump across the US. Let's see which pollsters got closer results. We are interested in how close the spread (the difference between the proportion of the two candidates 0.482 - 0.461 = 0.021) of each poll was to the real one. We will be using polls for the whole country that ended on or after October 31 (enddate >= "2016-10-31")
+  a. Calculate the spread for each poll and show the mean spread by pollster
+```{r, eval = TRUE}
+# we include national polls conducted during the week of the election
+polls <- polls_us_election_2016 %>% 
+  filter(state == "U.S." & enddate >= "2016-10-31")
+
+# polls <- polls_us_election_2016 %>% mutate(spread = abs(rawpoll_clinton - rawpoll_trump))
+         
+polls <- polls_us_election_2016 %>% 
+  mutate(spread = rawpoll_clinton/100 - rawpoll_trump/100)
+
+polls %>% pull(spread) %>% mean()
+
+```
+
+  b. Assume that there are only two parties so that spread = 2 * p - 1. Construct a 95% confidence interval between the two main candidates on election day.
+
+  a. Calculate the variable p
+```{r, eval = TRUE}
+# spread = 2 * p - 1
+# 2 * p = spread - 1
+# p = (spread + 1)/2
+
+polls <- polls %>% mutate(p = (spread + 1)/2)
+
+```
+
+  b. Calculate the standard deviation of p. Remember sd = 2 * sqrt(p*(1-p)/n). Why is this formula true in this particular case?
+```{r, eval = TRUE}
+# spread = 2 * p - 1
+# 2 * p = spread - 1
+# p = (spread + 1)/2
+
+polls <- polls %>% mutate(sd = 2 * sqrt(p*(1-p)/samplesize))
+```
+
+  c. Finally calculate the lower and upper confidence interval for the spread. Remember ci = spread +- qnorm(0.975)*sd(spread). Why is this true?
+```{r, eval = TRUE}
+polls <- polls %>% mutate(lower_ci = spread - qnorm(0.975) * sd(spread))
+
+polls <- polls %>% mutate(upper_ci = spread + qnorm(0.975) * sd(spread))
+
+```
+
+  c. Calculate an error variable, the difference between the poll spread and the actual spread from the election. Plot this error by pollster. Flip the pollster names, otherwise your graph will be impossible to read. You already did something similar in the last pset. From this graph you can see which pollster under, over or overall predicted the election night spread.
+```{r, eval = TRUE}
+polls <- polls %>% mutate(moe = 1.96 * 2 * sqrt(p * (1 - p) /(polls$samplesize)))
+
+view(polls)
+
+ggplot(data = polls, aes(x = pollster, 
+                         y = moe)) +
+      geom_point() + 
+      coord_flip()
+
+```
+
+
+
+

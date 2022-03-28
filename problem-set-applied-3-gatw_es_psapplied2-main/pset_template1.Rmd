@@ -1,0 +1,106 @@
+---
+title: "Problem Set template"
+author: "Fernanda Sobrino"
+date: "29/03/2020"
+output: 
+  pdf_document:
+    number_sections: yes
+  html_document:
+    df_print: paged
+urlcolor: blue
+---
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(lubridate)
+```
+
+<!-- .Rmd files use  markdown, a text mark up language, to provide formating.--> 
+<!--Text include within these strange arrows are comments and will not show up when you knit-->
+
+This submission is my work alone and complies with the 30535 integrity policy.
+
+Add your initials to indicate your agreement: **__**
+
+Add your collaborators: **__**
+
+Late coins used this pset: 0. Late coins left: X. 
+<!--You may use up to two for a given assignment.)-->
+
+# Problems
+## You change section heading goes here 
+<!--(Notice the use of two `##`)-->
+
+1. YOUR TEXT ANSWER GOES HERE (Please delete)
+
+```{r}
+gun_violence <- read.csv('gun-violence-data_01-2013_03-2018.csv', na = "null")
+head(gun_violence)
+view(gun_violence$n_guns_involved)
+
+```
+```{r}
+colnames(gun_violence)
+```
+
+
+```{r}
+str(gun_violence)
+```
+```{r}
+gun_violence2 <- gun_violence %>%
+  mutate(Year = format.Date(gun_violence$date, format="%Y"))
+
+gun_violence2013 <- gun_violence2 %>%
+  filter(Year == 2013)
+```
+
+
+Part 3
+1. What is the average number of guns involved in an incident?
+
+```{r}
+mean(gun_violence$n_guns_involved, na.rm = TRUE)
+# 1.372442 guns involved in each incident
+```
+2. 
+```{r}
+# unique(gun_violence$gun_type)
+```
+
+
+```{r}
+type <- gun_violence %>%
+  select(incident_id, date, gun_type) 
+
+type2 <- type %>%
+  separate(gun_type, c("gun_type1", "gun_type2", "gun_type3", "gun_type4", "gun_type5", "gun_type6", "gun_type7"), sep = '[||]')
+
+```
+
+3. 
+The incident_characteristics variable tells us what happened during this gun-related incident, whether participants were shot or not, wounded/injured, or killed. It also describes the incident type, which can be suicide, drive-by's, or mass shootings, for example. It also quickly describes the geographical location or setting of the incident (e.g. armed-robbery, police-involved shooting, domestic violence). There seems to be multiple characteristics for each incident to better record different aspects of the incident, and to provide information when there are multiple participants and/or reasons for the incident.
+```{r}
+view(gun_violence$incident_characteristics)
+```
+
+4. 
+```{r}
+top20incidents <- gun_violence %>%
+  group_by(incident_characteristics) %>%
+  summarise(n = n()) %>%
+  arrange(desc(n)) %>%
+  head(20)
+
+top20incidents %>%
+  ggplot(aes(incident_characteristics, n)) +
+  geom_bar(stat = "identity", fill = "brown4") +
+  scale_y_continuous("Number of Incidents", labels = scales::comma) +
+  scale_x_discrete("Incident Characteristic") +
+  ggtitle("Twenty Most Common Gun Incidents") + 
+  theme(axis.text.x = element_text(angle = 0, hjust = 1))
+
+
+```
+
+
+

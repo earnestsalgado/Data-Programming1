@@ -1,0 +1,242 @@
+---
+title: "Skills Problem Set 1"
+author: "Fernanda Sobrino"
+date: "3/14/2021"
+output: 
+  pdf_document:
+    number_sections: yes
+  html_document:
+    df_print: paged
+urlcolor: blue
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(dslabs)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Due Thursday April 8, midnight Central Time.
+
+Upload your pdf to canvas. 
+
+Push your code to your repo on Github Classroom. 
+
+This submission is my work alone and complies with the 30535 integrity policy.
+
+Add your initials to indicate your agreement: **__**
+
+Add names of anyone you discussed this problem set with: **__**
+
+Late coins used this pset: 0. Late coins left after submission: 9. 
+
+Name your submission files `skills_ps_1.Rmd` and `skills_ps_1.pdf`. (10 points)
+
+# Setup 
+## Installation (10 points)
+
+1. If you do not have R and RStudio installed:watch and follow the video on how to install them 
+1. If you do not have a github account, set up one now 
+1. Download Github Desktop [here](https://desktop.github.com/). If you are familiar with using `git` through the command line you are welcome to do so.
+1. Initialize your ps1 repository and download the pset_template [here](https://classroom.github.com/a/HL4qfScl). Please read the README file which is visible on the repo's homepage.
+1. Make sure you already installed these packages in R: `tidyverse`, `markdown`, and `dslabs`
+1. Run a line of code which tests the packages are installed using Stackoverflow instructions posted [here](https://stackoverflow.com/questions/4090169/elegant-way-to-check-for-missing-packages-and-install-them).
+Put the output in your problem set. This lets us know which packages successfully installed and which ones didn't
+1. What is your github id? 
+1. Add and commit your code. Push it to github with commit message "start-up completed" 
+1.  Now we'll practice reverting. 
+    a.  Add the following text to you homework: "Why did the code on Github delete tindr?"
+    a.  Now push the code to Github. 
+    a.  Now revert to the previous state of the code. (Now that the code is uncommitted, maybe it'll join tindr again.)
+    
+# R for Data Science Exercises
+
+## First Steps (10 points)
+
+Load `tidyverse` and `dslabs` 
+
+We will be using `polls_us_election_2016` data that is in the `dslabs` package
+
+1. How many rows are there in `polls_us_election_2016`? How many columns? What do the rows represent? How about the columns 
+
+1. Make a scatter-plot of startdate vs rawpoll_clinton 
+
+1. What does the variable grade describes? Use the help `?polls_us_election_2016 to find out. 
+
+1. What happens if you make a scatter-plot of population and grade? Why is the plot not useful?
+
+## Grammar of graphics: mapping data to aesthetics (20 points)
+
+1. Run `?polls_us_election_2016` to see the documentation for the data set. Run `head(polls_us_election_2016)` to see the first 6 rows of this data frame. Run `colnames(polls_us_election_2016)` to inspect which variables we have for each poll 
+
+1. Compare the following scatter-plots. Why are the two graphs different? Which graph is better representation of the data? (\textit{You do not need to graph then to answer these questions.})
+
+    ```{r, eval = FALSE}
+    # Graph 1
+    ggplot(data = polls_us_election_2016) +
+      geom_point(mapping = aes(x = startdate, 
+                               y = samplesize, 
+                               color = rawpoll_johnson)) 
+    
+    # Graph 2
+    ggplot(data = polls_us_election_2016) +
+      geom_point(mapping = aes(x = startdate, 
+                               y = samplesize, 
+                               color = as.character(rawpoll_johnson)))
+    ```
+
+
+1. What happens if you map an aesthetic to something other than a variable name, like `aes(color = samplesize >= 500)`
+
+    ```{r, eval = FALSE, echo = TRUE, fig.height = 3}
+    ggplot(data = polls_us_election_2016) +
+      geom_point(mapping = aes(x = startdate, 
+                               y = rawpoll_clinton, 
+                               color = samplesize >= 500))
+    ```
+
+1. Common bugs: What's gone wrong with this code? Fix the code so the points are blue.
+    ```{r, fig.height = 3, eval = TRUE, echo = TRUE}
+    ggplot(data = polls_us_election_2016) + 
+      geom_point(mapping = aes(x = startdate, 
+                               y = rawpoll_clinton, 
+                               color = "blue"))
+    ```
+
+## grammar of graphics: Facets (20 points)
+
+1.  Make the following plots. How does `facet_grid()` decide the layout of the grid?
+
+    ```{r, eval = FALSE}
+    ggplot(data = polls_us_election_2016) + 
+      geom_point(mapping = aes(x = startdate, 
+                               y = rawpoll_clinton)) +
+      facet_grid(cols = vars(population))
+    
+    ggplot(data = polls_us_election_2016) + 
+      geom_point(mapping = aes(x = startdate, 
+                               y = rawpoll_clinton)) +
+      facet_grid(rows = vars(grade))
+    
+    ggplot(data = polls_us_election_2016) + 
+      geom_point(mapping = aes(x = startdate, 
+                               y = rawpoll_clinton)) +
+      facet_grid(rows = vars(grade), cols = vars(population))
+    ```
+    
+1. What happens if you facet a continuous variable? Provide an example 
+
+1. Reproduce the following graph 
+
+    ```{r, echo=FALSE, eval = TRUE}
+    ggplot(data = polls_us_election_2016) +
+      geom_point(aes(x = startdate, 
+                     y = rawpoll_trump, 
+                     color = grade)) +
+      facet_grid(rows = vars(population))
+    ```
+
+1. Rotate 45 degrees the `startdate` labels from the previous plot. You can use Google, include `ggplot` in your search to get more relevant answers. Remember to cite any code you gather from the internet.  
+
+1. Reproduce the following graph. Why are there grades missing?
+
+    ```{r, echo=FALSE, warning=FALSE}
+ggplot(data = polls_us_election_2016) +
+  geom_point(aes(x = startdate, 
+                 y = rawpoll_clinton,
+                 shape = grade)) +
+  facet_grid(rows = vars(population))
+    ```
+    
+## Grammar of graphics: `geom`s (10 pts)
+
+1.  What geom would you use to draw a line chart? A boxplot? 
+    A histogram? An area chart? 
+ 
+1.  Will these two graphs look different? Why/why not?
+
+    ```{r, eval = FALSE, echo = TRUE}
+    ggplot(data = polls_us_election_2016, 
+           mapping = aes(x = startdate, 
+                         y = rawpoll_trump)) +
+      geom_point() +
+      geom_smooth(se=FALSE)
+    
+    ggplot() +
+      geom_point(data = polls_us_election_2016, 
+                 mapping = aes(x = startdate, 
+                               y = rawpoll_trump)) +
+      geom_smooth(data = polls_us_election_2016, 
+                  mapping = aes(x = startdate, 
+                                y = rawpoll_trump), se=FALSE)
+    ```   
+ 
+1. You are trying to figure out if there is a relationship between Trump poll numbers and the quality of the polls. Write code to make this graph. 
+
+
+    ```{r, echo = FALSE, warning = FALSE, message = FALSE, fig.width =5, fig.height=3}
+    ggplot(data = polls_us_election_2016, 
+           mapping = aes(x = startdate, 
+                         y = rawpoll_trump)) +
+        geom_point(aes(color = grade)) +
+        geom_smooth(se = FALSE)
+    ```   
+
+1. Make some changes to this graph: 
+    - make line red 
+    - make the x- and y-axes labels more informative using `+ labs()`
+    - use an informative title
+    - remove the legend (Google might be helpful to learn how)
+Are all four changes improvements? Which change made the plot worse and why?
+    
+### grammar of graphics:  Statistical transformations (10 pts)
+
+1.  What does `geom_col()` do? How is it different from `geom_bar()`?
+
+1.  Plot `ggplot(data=polls_us_election_2016, aes(x=grade)) + geom_bar()`. Replace the `geom` with a `stat` to make the same graph.  
+
+1.  Which 4 variables does `stat_smooth()` compute? How are these variables displayed on a graph made with `geom_smooth()`? 
+    What parameters (i.e. inputs to the function) control its behavior?
+    
+1. What is wrong with the following graph? Do we need to add `group = 1` to it? What denominator is ggplot using to determine proportions? 
+
+    ```{r, eval = FALSE, echo = TRUE}
+    ggplot(data = polls_us_election_2016) + 
+      geom_bar(mapping = aes(x = grade, y = ..prop..))
+    ```   
+    
+## grammar of graphics: Positional adjustments (5 pts)
+
+1.  What is the problem with this plot? How could you improve it? (You already made this plot in this Pset)
+
+    ```{r, fig.height = 4, fig.width = 4}
+    ggplot(data = polls_us_election_2016, 
+           mapping = aes(x = population, y = grade)) + 
+      geom_point()
+    ```
+
+1. Compare and contrast `geom_jitter()` with `geom_count()`. Use vocabulary from the "grammar of graphics" to support your argument.
+
+1.  What's the default position adjustment for `geom_bar()`?  What did we add to the code to change the default behavior of geom_bar? Here we are using the diamonds data set again
+
+    ```{r, fig.width=4.5, fig.height=2.5, echo = FALSE, eval = TRUE}
+    ggplot(data = diamonds) + 
+      geom_bar(mapping = aes(x = cut, fill = color, y = ..prop.., group= color), position="dodge")
+    ```
+ 
+## grammar of graphics: Coordinate systems (5 pts)
+
+1.  What happens when you use `coord_flip()`?
+
+
+1. What is this plot telling us? What does `geom_abline()` do? Why is `coord_fixed()` important? 
+
+    ```{r, fig.asp = 1, fig.height = 2, out.width = "50%"}
+    ggplot(data = polls_us_election_2016, 
+           mapping = aes(x = rawpoll_clinton, 
+                         y = rawpoll_trump)) +
+      geom_point() + 
+      geom_abline() +
+      coord_fixed()
+    ```
+    

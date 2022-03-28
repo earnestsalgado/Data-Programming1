@@ -1,0 +1,408 @@
+---
+title: "Skills Problem set III"
+author: "Earnest Salgado"
+date: "21/04/2021"
+output: 
+  pdf_document:
+    number_sections: yes
+  html_document:
+    df_print: paged
+urlcolor: blue
+---
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(dslabs)
+library(ggplot2)
+```
+
+<!-- .Rmd files use  markdown, a text mark up language, to provide formating.--> 
+<!--Text include within these strange arrows are comments and will not show up when you knit-->
+
+This submission is my work alone and complies with the 30535 integrity policy.
+
+Add your initials to indicate your agreement: **ES**
+
+Add your collaborators: **GATW**
+
+Late coins used this pset: 0. Late coins left: 9. 
+<!--You may use up to two for a given assignment.)-->
+
+# Exercises
+## Transformations: grouped operations with mutate() and filter() (20 points) 
+<!--(Notice the use of two `##`)-->
+In this section, we will use the dataset gapminder in the dslabs package. This data includes health and income outcomes for 184 countries between 1960 and 2016.
+
+1. Let's explore gdp growth:
+  a. Order the data by country. For each observation use lag() and group_by() to compute previous year gdp.
+```{r message=FALSE, warning=FALSE, eval=FALSE}
+order_by_country <- gapminder %>%
+  arrange(country) %>%
+  group_by(country) %>%
+  mutate(previousyr_gdp = lag(gdp)) %>%
+  select(country,year,gdp,previousyr_gdp,continent,region) %>%
+  filter(!is.na(gdp))
+
+```
+
+  b. Calculate gdp growth by country and year. Plot average annual growth by continent. Choose wisely your geom graph is as informative as possible. What do you learn from this plot?
+
+From this plot we learn broad patterns of annual gdp growth in terms of continents. Generally since 1960, gdp growth has held steady around 0.05 annually for all continents. Oceania has both the highest and lowest gdp growth swings between 1970 to 1980, then has a sideways pattern through 2010. Aside from them, Europe has experienced the largest dips in gdp growth, with two significant periods of negative growth in the early 1990s and late 2000s. Asia seems to have the highest trendline for gdp growth.
+```{r}
+growth_gdp <- order_by_country %>%
+  mutate(country_annual_growth = (gdp - previousyr_gdp)/previousyr_gdp)
+```
+
+```{r message=FALSE, warning=FALSE, eval=TRUE}
+continent_growth <- growth_gdp %>%
+  group_by(continent, year) %>%
+  summarise(cont_annual_growth = mean(country_annual_growth, na.rm=TRUE)) %>%
+  ungroup()
+
+continent_growth <- na.omit(continent_growth)
+
+ggplot(data = continent_growth,aes(x = year, y = cont_annual_growth, group = continent)) +
+   geom_line(aes(color = continent))
+
+```
+
+
+2. Calculate the growth rate for each country (across all the years) relative to the mean growth of their region. Which 10 countries growth is the least compared to the mean in their region?
+
+Compared to the mean of their regions, the 10 countries with the least growth are Guinea-Bissau, Cameroon, 	
+Cote d'Ivoire, Mali, Liberia, Congo Republic, Central African Republic, Gabon, Senegal, and New Caledonia.
+```{r message=FALSE, warning=FALSE, eval=TRUE}
+region_growth <- growth_gdp %>%
+  group_by(region, year) %>%
+  mutate(region_annual_growth = mean(country_annual_growth, na.rm=TRUE)) %>%
+  ungroup() %>%
+  mutate(relative_growth= country_annual_growth/region_annual_growth) %>%
+  arrange(relative_growth) %>%
+  head(10)
+
+region_growth %>% as_tibble()
+
+region_growth <- na.omit(region_growth)
+```
+3. For each country, count the number of years they grew above their region mean (Hint: construct a boolean variable for every country-year measure whether it grew above the average). Show the 10 countries with more years above their region average.
+```{r message=FALSE, warning=FALSE, eval=TRUE}
+growth_gdp <- na.omit(growth_gdp)
+
+grew_above_avg <- growth_gdp %>%
+  group_by(region, year) %>%
+  mutate(region_annual_growth = mean(country_annual_growth, na.rm=TRUE),
+         gdpgrowth_more = ifelse(country_annual_growth > region_annual_growth, 1, 0)) %>%
+  ungroup() %>%
+  group_by(country) %>%
+  summarise(n = sum(gdpgrowth_more)) %>%
+  arrange(desc(n)) %>%
+  head(10)
+
+grew_above_avg %>% as_tibble()
+```
+
+
+## Exploratory Data Analysis (25 points)
+### EDA: Exploring variation
+1. Explore the distribution of infant_mortality, using the whole sample
+  a. Describe the overall pattern. Does it fit your expectations? Does it make sense to plot all the years and countries at the same time?
+
+The average infant mortality value is 55. The overall pattern shows a decreasing infant mortality value overall for the whole sample, that is, there are fewer and fewer countries with higher infant mortality values.
+
+Based on plotting infant_mortality vs year, it is not very informative to plot all the years and countries at once. The plot is unable to clearly show the data if we choose to include all the years for 180+ countries. For example, creating a plot grouped by continent is much simpler and clearer to identify data patterns:
+  
+```{r message=FALSE, warning=FALSE, eval=TRUE}
+summary(gapminder)
+
+gapminder %>%
+  ggplot(aes(x=infant_mortality)) +
+  geom_freqpoly()
+
+ggplot(data = gapminder,aes(x = year, y = infant_mortality, group = continent)) +
+   geom_line(aes(color = continent))
+```
+
+  b. Play around with bin sizes. Do you discover anything unusual or surprising?
+  
+As we adjust bin sizes, the count of country/year pairs decreases when comparing the distribution plots of infant mortality, for example. In this case, bin size controls how many observations go in each unit of infant mortality.
+```{r message=FALSE, warning=FALSE, eval=TRUE}
+ggplot(data = gapminder) +
+  geom_histogram(mapping = aes(x = infant_mortality), binwidth = 0.5)
+```
+
+```{r message=FALSE, warning=FALSE, eval=TRUE}
+ggplot(data = gapminder) +
+  geom_histogram(mapping = aes(x = infant_mortality), binwidth = 0.1)
+```
+
+
+
+2. Explore the distribution of life_expectancy.
+  a. Describe the overall pattern using a graph.
+```{r message=FALSE, warning=FALSE, eval=TRUE}
+ggplot(data = gapminder) +
+  geom_histogram(mapping = aes(x = life_expectancy), binwidth = 0.3)
+```
+
+```{r message=FALSE, warning=FALSE, eval=TRUE}
+gapminder %>%
+  ggplot(aes(x=life_expectancy)) +
+  geom_freqpoly()
+
+ggplot(data = gapminder,aes(x = year, y = life_expectancy, group = continent)) +
+   geom_line(aes(color = continent))
+```
+The overall pattern for the years covered in the data is gradually increasing across continents. Specifically, the lower-end life expectancy is much more variable than the life expectancy max values. In terms of which continent has the highest life expectancy, Europe is highest and also the least variable, followed by the Americas. Asia and Africa has the most variable and lowest life expectancy patterns.
+
+  b. How many country-year pairs report a life expectancy under 40? How many over 80? Find the country-year pair with the highest life expectancy
+```{r message=FALSE, warning=FALSE, eval=TRUE}
+countryyear_pairs <- gapminder %>%
+  group_by(country, year) %>%
+  filter(life_expectancy < 40)
+
+nrow(countryyear_pairs)
+```
+
+```{r message=FALSE, warning=FALSE, eval=TRUE}
+countryyear_pairs2 <- gapminder %>%
+  group_by(country, year) %>%
+  filter(life_expectancy > 80)
+
+nrow(countryyear_pairs2)
+```
+```{r message=FALSE, warning=FALSE, eval=TRUE}
+gapminder %>%
+  arrange(desc(life_expectancy)) %>%
+  head(1)
+```
+
+3. Compare and contrast coord_cartesian() vs xlim() or ylim() when zooming in on a histogram. What happens if you leave binwidth unset? What happens if you try and zoom so only half a bar shows?
+```{r message=FALSE, warning=FALSE, eval=TRUE}
+ggplot(data = gapminder) +
+  geom_histogram(mapping = aes(x = life_expectancy), binwidth = 0.7)
+```
+
+
+### EDA: Navigating NAs (10 points)
+1. What happens to missing values on a histogram? What happens to missing values in a bar chart? Why is there a difference?
+
+In a bar chart, NA is considered as just another category. In a histogram, NA is ignored because the x axis has order. geom_histogram() removed rows with NA values; Apparently geom_bar() doesn’t remove NA, but rather treat it as another factor or category.
+
+```{r message=TRUE, warning=TRUE, eval=TRUE}
+gapminder_1999 <- gapminder %>%
+  filter(year == "1999")
+
+ggplot(data = gapminder_1999) +
+  geom_histogram(aes(x = infant_mortality))
+
+```
+
+```{r message=FALSE, warning=FALSE, eval=TRUE}
+color_NA <- diamonds %>% mutate(color = as.factor(ifelse(y > 7, NA, cut)))
+
+ggplot(data = color_NA) +
+  geom_bar(aes(x = color))
+```
+
+2. What does na.rm = TRUE do in mean() and sum()?
+
+Excluding NA values by using na.rm = TRUE will calculate the mathematical operation for all non-missing values in the dataset.
+```{r message=FALSE, warning=FALSE, eval=TRUE}
+mean(gapminder$gdp, na.rm = TRUE)
+```
+
+# Exploratory Data Analysis: Covariation (40 points)
+We will use the diamonds data set for the next section
+
+  1. Looking at the table below it appears that fair is nearly the best cut of diamond and ideal the worst cut. But, the opposite is true!
+```{r message=FALSE, warning=FALSE, eval=TRUE}
+tibble(
+  cut = c("Fair", "Good", "Very Good", "Premium", "Ideal"), 
+  mean_price = c(4359, 3929, 3982, 4584, 3458)
+)
+```
+  a. What variable in the diamonds dataset is most important for predicting the price of a diamond?
+  
+We observe that carat has the highest correlation to price compared to other variables, with 0.9215913. This makes it the most important variable in predicting price of diamonds. To make this comparison, we must convert the ordered categorical variables into the same type (numeric) as price. Then we use the cor() function to compute the covariance between the variables. 
+```{r message=FALSE, warning=FALSE, eval=TRUE}
+ggplot(data = diamonds, 
+       mapping = aes(x = carat, y = price)) +
+      geom_point() +
+      geom_smooth(se=FALSE)
+```
+
+```{r message=FALSE, warning=FALSE, eval=TRUE}
+ggplot(data = diamonds, 
+       mapping = aes(x = clarity, y = price)) +
+      geom_point() +
+      geom_smooth(se=FALSE)
+```
+
+```{r message=FALSE, warning=FALSE, eval=TRUE}
+diamonds %>%
+  mutate(cut = as.numeric(cut),
+         color = as.numeric(color),
+         clarity = as.numeric(clarity)) %>%
+  select(price, everything()) %>%
+  cor()
+```
+  
+  b. How is that variable correlated with cut?
+
+When reading the correlation matrix for carat with the cut variable, we see a slightly negative correlation, -0.13496702. This means that heavier diamonds are more likely to have a lower quality cut.
+
+  c. Explain why the table above is misleading.
+
+The table above is misleading because the mean price associated with different cuts is varied where the quality does not match their price levels. For example, fair cut diamonds are priced higher than good, very good, and ideal cut diamonds. Given the words chosen describing the diamond cut, one may expect the table to show mean price from lowest to highest, with fair being the lowest and ideal being the highest mean price.
+
+2. Recreate the count dataframe (see textbook for plot in 7.5.2) with adjustments to more clearly show the distribution of cut within color.
+  a. Which cut is most common in every color category?
+  
+Ideal cut is the most common within color.
+```{r message=FALSE, warning=FALSE, eval=TRUE}
+diamonds %>% 
+  count(color, cut) %>%
+  group_by(color) %>%
+  mutate(prop = n / sum(n)) %>%
+  ggplot() +
+      geom_tile(mapping = aes(x = color, y = cut, fill = prop)) +
+  labs(title = 'Distribution of cut within color')
+
+```
+
+  b. Repeat the exercise again to show distribution of colour within cut.
+```{r message=FALSE, warning=FALSE, eval=TRUE}
+diamonds %>% 
+  count(color, cut) %>%
+  group_by(color) %>%
+  mutate(prop = n / sum(n)) %>%
+  ggplot() +
+      geom_tile(mapping = aes(x = cut, y = color, fill = prop)) +
+  labs(title = 'Distribution of color within cut')
+```
+  c. Using the dataframe you just produced as input, reproduce the following graph.
+```{r, eval = TRUE, echo = TRUE, fig.height = 5}
+diamonds %>% 
+  count(color, cut) %>%
+  mutate(prop = n / sum(n))
+
+  ggplot(data = diamonds) +
+    geom_bar(mapping = aes(x = color, y = ..prop.., group = 1)) + 
+  facet_wrap(vars(cut))
+```
+
+3. Instead of summarising the conditional distribution of price by carat size with a boxplot (see 7.5.3), you could use a frequency polygon, where you map binned carat data to the color aesthetic.
+  a. Make a frequency polygon using cut_width() and another using cut_number(). Adjust the parameters until you think the graphs are most useful.
+
+```{r}
+diamonds %>% ggplot() +
+  geom_freqpoly(mapping = aes(x = price,
+                              color = cut_width(carat, .2)), bins = 30)
+
+diamonds %>% ggplot() +
+  geom_freqpoly(mapping = aes(x = price,
+                              color = cut_width(carat, .4)), bins = 30)
+```
+```{r}
+diamonds %>% ggplot() +
+  geom_freqpoly(mapping = aes(x = price,
+                              color = cut_number(carat, 10)), bins = 30)
+```
+
+  b. How does this affect your visualisation of joint distribution of carat and price and your ability to interpret them?
+
+Unlike geom_density(), geom_freqpoly() is a smoothered histogram, so the height of each polygon is affected by the number of observations in each group. Setting the cut_width too small will have too many categories. Some of the categories will have very few observations, resulting in polygons that are flat and close to the x-axis. Compare the cut_width of .2 and .4:
+
+Since most of the diamonds are below 1 carat, in both plots, the polygons of above 1 carat are flat, and some are not distingushable from others. In contrast, cut_number() ensures the same number of observations in each group. Which is pretty much the same as what a freq_density plot would look like, except the y scale is  frequncy.
+
+4. Visualize the distribution of carat, partitioned by price. The graph should have a clear story accentuated by a descriptive title.
+
+Using geom_density() and partitioning by price with cut_width, it is not surprising to see that diamonds of higher carat are associated with higher price in general.
+```{r}
+diamonds %>% ggplot() +
+  geom_density(mapping = aes(x = carat,
+                             color = cut_width(price, 5000, boundary = 0)))
+```
+
+5. How does the price distribution of very large diamonds compare to small diamonds? Is it as you expect, or does it surprise you? Why?
+
+The price distribution of very large diamonds are much more variable than the smaller diamonds. Perhaps other factors, such as cut, clarity, and color have heavier influence on the price of larger diamonds.
+```{r message=FALSE, warning=FALSE, eval=TRUE}
+diamonds %>% ggplot +
+  geom_boxplot(mapping = aes(x = cut_number(carat, 10),
+                             y = price)) +
+  coord_flip()
+```
+
+6. So far we've focused on visualizing covariation of two variables. We can add a third dimension in several ways. For example, we could map to a third aesthetic or add facets. Combine two of the techniques you've learned in this class to visualize the combined distribution of cut, carat, and price.
+
+We can use boxplot:
+```{r message=FALSE, warning=FALSE, eval=TRUE}
+diamonds %>% ggplot() +
+  geom_boxplot(mapping = aes(x = cut, y = price,
+                             color = cut_number(carat, 5)))
+```
+
+Heatmap:
+```{r}
+diamonds %>% mutate(carat_group = cut_number(carat, 10)) %>%
+  group_by(cut, carat_group) %>%
+  summarize(avg_price = mean(price)) %>%
+  ggplot() +
+  geom_tile(mapping = aes(x = cut, y = carat_group,
+                          fill = avg_price))
+```
+
+Facetted geom_bin2d():
+```{r}
+diamonds %>% ggplot() +
+  geom_bin2d(mapping = aes(x = carat, y = price)) +
+  facet_grid(cut~.)
+```
+
+
+7. Two dimensional plots reveal outliers that are not visible in one dimensional plots. For example, some points in the plot have an unusual combination of x and y values, which makes the points outliers even though their x and y values appear normal when examined separately. Consider the two plots below. Which geom is better for identifying outliers? Why?
+
+Even though they look similarly, I believe the logical reasoning behind why scatterplot is superior in this case is that it focuses on showing the locations of each individual point, rather than the binned counts, thus it’s more suitable for the purpose of identifying outliers. (I could be wrong.)
+```{r message=FALSE, warning=FALSE, eval=TRUE}
+ggplot(data = diamonds) + 
+  geom_point(mapping = aes(x = x, y = y)) + 
+  coord_cartesian(xlim = c(4, 11), ylim = c(4, 11))
+
+ggplot(data = diamonds) + 
+  geom_bin2d(mapping = aes(x = x, y = y)) + 
+  coord_cartesian(xlim = c(4, 11), ylim = c(4, 11))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

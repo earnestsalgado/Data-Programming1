@@ -1,0 +1,594 @@
+---
+title: "Applied Problem Set 3"
+author: "Guillermo Antonio Trefogli Wong & Earnest Salgado"
+date: "28/05/2021"
+output: 
+  pdf_document:
+    number_sections: yes
+  html_document:
+    df_print: paged
+urlcolor: blue
+always_allow_html: true
+---
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(lubridate)
+library(tidycensus)
+library(tmap)
+library(ggrepel)
+knitr::opts_chunk$set(fig.width=6, fig.height=3)
+```
+
+<!-- .Rmd files use  markdown, a text mark up language, to provide formating.--> 
+<!--Text include within these strange arrows are comments and will not show up when you knit-->
+
+This submission is my work alone and complies with the 30535 integrity policy.
+
+Add your initials to indicate your agreement: **GATW**
+
+Add your collaborators: **ES**
+
+Late coins used this pset: 0. Late coins left: 4. 
+<!--You may use up to two for a given assignment.)-->
+
+Download the data for this Pset from here (link: https://www.kaggle.com/jameslko/gun-violence-data). Just click on Download and it should download automatically to your computer. Be careful when pushing back your work into github, this file is over 100MG so you won't be able to push your pset if the data is still there. This data set contains more than 260k gun violence incidents, with detail information about each incident. The data is from gunviolencearchive.org.
+
+In the questions where you are asked to produce a graph or a map. Make sure that:
+
+  1. you add an informative title
+  2. your axis have informative names
+  3. graphs are not the default color (whichever you pick is fine)
+
+Points will be taken off if your graphs and maps do not follow this.
+
+# Load the data and first glimpse (5 pts)
+1. Load the data and show how many rows and columns it has
+
+The data contains 239,677 rows and 29 columns:
+```{r}
+gun_df <- read.csv("gun-violence-data_01-2013_03-2018.csv")
+glimpse(gun_df)
+
+head(gun_df)
+```
+2. Explore the variables on your own (we do not want to see any code here) and write a short paragraph of what you find. Pay attention on which characteristics we have for each event.
+
+Based on the description of the variables we can observe that the data contains a unique identification for events associated with gun violence. The variables describe the events in terms of different characteristics, such as basic information of the event (date, location, number of people involved), the level of violence (number of killed or injured, number of guns, type of guns) the features of the people involved (age, gender, relationship) and other related information (electoral district, website url, notes, etc.).
+
+3. Which variables you might have to format later? (just name them you do not have to do anything else right now)
+
+Changes in terms of format and to tidy the data:
+
+  - We will probably need to change the type of some variables. For instance, "Date" is a character type and we will probably need it to be as date, or "participant_age" is a character and we will probably need it to be a factor.
+  - It could the case that some variables have redundant information than others, such as "participant_age" and "participant_age_group"
+  - It seems that, in order to analyze some variables, we will need to tidy in through pivot_longer or pivot_wider, because some are containing information for more than one observation. It maybe the case of tidying the data relative to "participant_gender" or "participant name" variables.
+  - Some missing values are explicit, other are implicit
+  - We will need to standardize the format of some values. For instance it is the case of "gun_type" 
+  - Some variables have many information inside, so that if we want to analyze them we will probably need to modify them through separating they strings, earsing unhelpful information, etc.. For instance, it is the case of "incident characteristics" or "participant name"
+
+# Time related trends of gun violence (10 pts)
+
+1. Make sure the data variable is in a Date format. If not transform it.
+```{r}
+gun_date <- gun_df %>% mutate(date = ymd(date))
+```
+
+2. Is the number of incidents increasing by year? Show your result in a graph and write a short paragraph about what you are seeing. Add the count for each year as an annotation label. 
+```{r}
+gun_year <- gun_date %>% 
+  mutate(year = floor_date(date, unit = "year")) 
+
+df_year <- gun_year %>% 
+  group_by(year, incident_id) %>% 
+  summarise(n = n()) %>% 
+    group_by(year) %>% 
+    summarise(n_inci=n())
+
+df_year %>% 
+  ggplot(aes(year, n_inci)) +
+  geom_line(size = 1, color = "darkgreen") + geom_point(size = 2.5, color = "darkgreen") +
+  labs(title = "Evolution of Number of Incidents (2013 - 2018)",
+       x = "Years",
+       y = "Number of Incidents") +
+  geom_text_repel(aes(label = n_inci)) +
+  scale_y_continuous(labels = scales::comma, breaks = seq(0, 65000, by = 10000)) +
+  scale_x_date(date_breaks = "1 year", date_labels ="%Y" ) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5), panel.grid.minor = element_blank())
+```
+
+The number of incidents increased dramatically from 2013 to 2014. Then, the increase continue, at a low rate, up to 2017. From 2017 to 2018, this number fall substantially. However, it reached a number still roughly five times that of the year 2013. 
+
+Important to note, it caught our attention the tails of the plot, 2013 and 2018. 
+
+```{r}
+summary(gun_date$date)
+```
+
+After observing the data, we noticed that in the case of 2018 the low numbers are explained, in part, because of the difference in the period covered for that year. Then, for further analysis, one caveat at this point will be not to consider 2018 when doing comparisons at years level.
+
+On the other hand, regarding 2013, the values are in fact very low, in comparison to following years. Then, one caveat here will be verify the quality of the data reported, to be sure that these numbers are different due to actual differences in incidents happening in the city, or because of differences in capacity of the organization to report the data. 
+
+3. Is there a particular violent month? Answer this question with a graph. Be careful: should you use the whole data to answer this question? Add the count for each month as an annotation label.
+
+To perform this analysis, it would be more informative to exclude the year 2013 because there is a huge difference between the number of incidents registered in that year from those of the following years. To better understand this situation, it would be helpful to visualize the pattern in a plot, as follows:
+
+```{r}
+gun_month <- gun_date %>% mutate(month = floor_date(date, unit = "month"))
+
+# glimpse(df_month)
+
+df_month <- gun_month %>% 
+  group_by(month, incident_id) %>% 
+  summarise(n = n()) %>% 
+    group_by(month) %>% 
+    summarise(n_inci=n())
+
+df_month %>% 
+  ggplot(aes(month, n_inci)) +
+  geom_line() + geom_point() +
+  labs(title = "Number of Incidents by Months (2013-2018)",
+       x = "Month",
+       y = "Number of Incidents") +
+  geom_text_repel(aes(label = n_inci)) +
+  scale_x_date(NULL, date_labels = "%b %y", breaks = "month") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90)) +
+  scale_y_continuous(labels = scales::comma, breaks = seq(0, 5666, by = 500))
+```
+
+Then, plotting the average number of incidents by month excluding year 2013:
+
+```{r}
+gun_bymonth <- gun_year %>% 
+  filter(year(date) != 2013) %>% 
+  mutate(datemonth = floor_date(date, unit = "month"), 
+                                   month = month(date, label = TRUE)) 
+
+(gun_bymonth_chart <- gun_bymonth %>% 
+  group_by(datemonth, month) %>% 
+  summarise(n = n())%>%
+  group_by(month) %>% 
+  summarise(avg_month = mean(n)))
+
+gun_bymonth_chart %>% 
+  ggplot(aes(month, avg_month)) +
+  geom_bar(stat = "identity", alpha = 0.95, fill = "midnightblue") +
+  labs(title = "Average Number of Incidents by Month (2014-2018)",
+       x = "Month",
+       y = "Average Number of Incidents") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme_bw() +
+  scale_y_continuous(breaks = seq(0, 5273, by = 500))
+
+```
+It can be notice that, on average, July and August are the months with the highest number of incidents. 
+
+4. Is there a particular violent day of the week? Add the count for each day as an annotation label.
+
+```{r}
+gun_byweek <- gun_bymonth %>% mutate(datemonth = floor_date(date, unit = "month"),
+                                  weekday = wday(date, label = TRUE))
+
+(gun_byweek_chart <- gun_byweek %>% 
+  group_by(datemonth, weekday) %>% 
+  summarise(n = n())%>%
+  group_by(weekday) %>% 
+  summarise(avg_weekday = mean(n)))
+
+gun_byweek_chart %>% 
+  ggplot(aes(weekday, avg_weekday)) +
+  geom_bar(stat = "identity", alpha = 0.95, fill = "midnightblue") +
+  labs(title = "Average Number of Incidents by Month (2014-2018)",
+       x = "Month",
+       y = "Average Number of Incidents") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme_bw() +
+  scale_y_continuous(breaks = seq(0, 724.9, by = 50))
+
+```
+
+In terms of weekday, it seems that it is Sunday the with the highest number of incidents.
+
+5. Write a short paragraph with your findings on the number of incidents by year, month, and weekday.
+
+Based on the previous plots and information, our takeaways are the following ones:
+
+  * In terms of years, the yearly average incidents is 56399.25, only considering the years 2014-2017. The yearly number of incidents have been increasing from 2014 to 2007 at a average yearly number of 3182.
+  * In terms of months, July and August, the ones related with summer season, are the ones with the highest number of incidents. The difference however is not very high: the average of incidents of these two months is 5263, while the average of the rest of months is 4609.745.
+  * In terms of weekday, Sunday is the one with the highest number of incidents, followed by Saturday. Then, weekends are the ones with more incidents. On average, a day in the weekends has 724.902 incidents, while the average of the rest of weekdays is 652.5294.
+
+# Characteristics of Gun violence incidents (20 points)
+
+WARNING!! some variables in this data set need to be manipulated before you try to plot them. It might be a good idea to go back and check your notes on Strings, Tidy, and Joins.
+
+1. What is the average number of guns involved in an incident?
+
+For this question we perform mean() on the n_guns_involved variable and calculate 1.372442 guns on average.
+```{r}
+mean(gun_df$n_guns_involved, na.rm = TRUE)
+# 1.372442 guns involved in each incident
+```
+
+2. Which type of guns are more commonly used? Use a plot to show your answer. Do not show Unknown or missing values on your plot.
+
+Manipulation is needed to create a plot that is clear and tidy. Functions that are beneficial are separate_rows(), str_detect(), and str_replace. Although there of course could be other functions to manipulate the data.
+
+Looking at the data in the plot, we found Handguns to be the most common gun type, which was almost five times more common as the second-most common gun, the 9mm.
+```{r}
+type <- gun_df %>%
+  select(incident_id, date, gun_type)
+
+type2 <- type %>%
+  separate_rows(gun_type, sep = "\\|")
+
+type2[type2 == ""] = NA
+
+type3 <- type2 %>%
+  filter(!str_detect(gun_type, 'Unknown')) %>%
+  mutate(gun_type = str_replace(gun_type, '[0-9]+::', "")) %>%
+  group_by(gun_type) %>%
+  summarise(n = n()) %>%
+  arrange(desc(n)) %>%
+  head(10)
+
+type3 %>% 
+  ggplot(aes(x = fct_reorder(gun_type, n), y = n)) +
+  geom_bar(stat = "identity", alpha = 0.95, fill = "midnightblue") +
+  labs(title = "Most Common Guns Used in Incidents 2013-2018",
+       x = "Type of Gun",
+       y = "Total Count") +
+  theme_bw() +
+  coord_flip()
+
+```
+3. Explore the incident_characteristics variable. What is this variable telling us? Why are there multiple characteristics for each incident?
+
+The incident_characteristics variable tells us what happened during this gun-related incident, whether participants were shot or not, wounded/injured, or killed. It also describes the incident type, which can be suicide, drive-by's, or mass shootings, for example. It also quickly describes the geographical location or setting of the incident (e.g. armed-robbery, police-involved shooting, domestic violence). There seems to be multiple characteristics for each incident to better record different aspects of the incident, and to provide information when there are multiple participants and/or reasons for the incident.
+
+4. Show in a plot which are the most common incident_characteristics cap your graph at 20 (i.e. just show the 20 most common incident characteristics)
+
+```{r}
+incidents <- gun_df %>%
+  select(incident_id, date, incident_characteristics)
+
+incidents2 <- incidents %>%
+  separate_rows(incident_characteristics, sep = "\\|")
+
+incidents2[incidents2 == ""] = NA
+
+top20incidents <- incidents2 %>%
+  filter(incident_characteristics != is.na(.)) %>%
+  group_by(incident_characteristics) %>%
+  summarise(n = n()) %>%
+  arrange(desc(n)) %>%
+  head(20)
+
+```
+
+```{r}
+top20incidents %>%
+  ggplot(aes(x = fct_reorder(incident_characteristics, n), y = n)) +
+  geom_bar(stat = "identity", fill = "brown4") +
+  scale_y_continuous("Number of Incidents", labels = scales::comma) +
+  scale_x_discrete("Incident Characteristic")  +
+  labs(title = "Twenty Most Common Incident Types") + 
+  coord_flip() +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 0, hjust = 1))
+
+```
+
+# Suspects Characteristics (30 points)
+
+1. Explore the following variables and write a short paragraph of what they mean and how they are connected to each other: participant_age, participant_gender, participant_type, and participant_status. Do you see any technical difficulties for how these variables are coded? If so, explain them.
+
+We explore and define the following variables: participant_age = age of each participant in an incident, participant_gender = either male or female for participants involved, participant_type = victims or subject/suspects in a particular incident, participant_status = characterizes how each participant was following the incident. There were many unique values for participant_status, "Killed", "Injured", "UnharmedArrested", "Arrested", "Unharmed", "InjuredArrested". "KilledArrested".
+
+In terms of "technical difficulties", we observe these cells store multiple, discrete instances of data. The [:digit:] at the start of each value is presumably used to track the values accross from one "participant_" variable to the next. For example, one observation of participant_age contains only one age value, with four participant_gender values. One avenue for addressing these inconsistencies could involve performing counts for each delimited value. We manipulate these variables in order to correctly count.
+
+2. What is the average of suspects and victims per incident?
+
+```{r message=FALSE, warning=FALSE}
+suspects_victims <- gun_df %>%
+  select(incident_id, participant_type) %>%
+  separate_rows(participant_type, sep = "\\|")
+
+suspects_victims[suspects_victims == ""] = NA
+
+suspects_victims2 <- suspects_victims %>%
+  filter(participant_type != is.na(.)) %>%
+  mutate(participant_type = str_replace(participant_type, '[0-9]+::', ""),
+         participant_type = str_replace(participant_type, '[0-9]+:', "")) 
+
+unique(suspects_victims2$participant_type)
+
+suspects_victims3 <- suspects_victims2 %>%
+  group_by(incident_id, participant_type) %>%
+  summarise(n = n())
+
+sus_vict_wider <- suspects_victims3 %>% 
+  pivot_wider(names_from = participant_type, values_from = n)
+
+sus_vict_wider[is.na(sus_vict_wider)] <- 0
+
+# pivot_wider
+```
+
+```{r}
+sum(sus_vict_wider$Victim) / length(sus_vict_wider$incident_id)
+
+sum(sus_vict_wider$`Subject-Suspect`) / length(sus_vict_wider$incident_id)
+
+summary(sus_vict_wider$`Subject-Suspect`)
+summary(sus_vict_wider$Victim)
+```
+
+3. Create a new data frame with just the suspects include the following variables: incident_id, participant_age, participant_gender. Just print the head() of this new data frame. (Hints: 1. Google what the function unnest does, is part of tidyr library, 2. review the tidy and joins materials)
+
+```{r message=FALSE, warning=FALSE}
+suspects_type <- gun_df %>%
+  select(incident_id, participant_type) %>%
+  transform(participant_type = strsplit(participant_type, "[||]+")) %>%
+  unnest(participant_type) %>%
+  mutate(participant_type2 = participant_type) %>%
+  separate(participant_type, c("id_participant", "participant_type"),
+           sep = "::") %>%
+  separate(participant_type2, c("id_participant2", "participant_type2"),
+           sep = ":") %>%
+  mutate(id_participant = ifelse(is.na(participant_type),
+                                 id_participant2,
+                                 id_participant)) %>%
+  mutate(participant_type = ifelse(is.na(participant_type),
+                                   participant_type2,
+                                   participant_type)) %>%
+  mutate(suspect = str_count(participant_type, "Suspect")) %>%
+  filter(suspect == 1)
+```
+```{r message=FALSE, warning=FALSE}
+suspects_age <- gun_df %>%
+  select(incident_id, participant_age) %>%
+  transform(participant_age = strsplit(participant_age, "[||]+")) %>%
+  unnest(participant_age) %>%
+  mutate(participant_age2 = participant_age) %>%
+  separate(participant_age, c("id_participant", "participant_age"),
+           sep = "::") %>%
+  separate(participant_age2, c("id_participant2", "participant_age2"),
+           sep = ":") 
+```
+
+```{r message=FALSE, warning=FALSE}
+suspects_gender <- gun_df %>%
+  select(incident_id, participant_gender) %>%
+  transform(participant_gender = strsplit(participant_gender, "[||]+")) %>%
+  unnest(participant_gender) %>%
+  mutate(participant_gender2 = participant_gender) %>%
+  separate(participant_gender, c("id_participant", "participant_gender"),
+           sep = "::") %>%
+  separate(participant_gender2, c("id_participant2", "participant_gender2"),
+           sep = ":") 
+```
+
+```{r}
+suspects_only <- suspects_type %>%
+  left_join(suspects_gender, c("incident_id", "id_participant")) %>%
+  left_join(suspects_age, c("incident_id", "id_participant")) %>%
+  select(incident_id, id_participant, participant_type, participant_gender, participant_age)
+```
+
+
+4. Show the distribution of suspects age, crop your plot if you find any suspect over the age of 100
+
+```{r}
+suspects_age_distrib <- suspects_only %>%
+  select(incident_id, id_participant, participant_age) %>%
+  filter(participant_age != is.na(.))
+
+suspects_age_distrib$participant_age <- as.numeric(suspects_age_distrib$participant_age)
+```
+
+```{r}
+age_groups <- suspects_age_distrib %>%
+  filter(participant_age > 0, participant_age <= 100) %>%
+  mutate(age_group = cut(participant_age, c(seq(0, 100, by = 10), Inf), include.lowest = TRUE))
+
+age_group_plot <- age_groups %>%
+  group_by(age_group) %>%
+  summarise(n = n()) %>%
+  arrange(desc(n))
+
+```
+
+```{r}
+age_group_plot %>% 
+  ggplot(aes(age_group, n)) +
+  geom_bar(stat = "identity", alpha = 0.95, fill = "brown3") +
+  labs(title = "Distribution of Suspect Age for Gun Incidents (2014-2018)",
+       x = "Age Group",
+       y = "Total Number of Suspects") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  geom_text_repel(aes(label = n))+
+  theme_bw() 
+```
+
+5. What percentage of suspects are male (exclude missing values)?
+
+We observe that males are 93% of all suspects. 
+```{r}
+suspects_only %>%
+  filter(participant_gender != is.na(.)) %>%
+  group_by(participant_gender) %>%
+  summarise(n = n(), 
+            gender_ratio = n / 179454*100)
+
+```
+
+
+6. How many different status are there?
+
+If we count different status by the total different combinations of statuses, there are 12. Conversely, if we count individual statuses, there are four- arrested, injured, unharmed, and killed.
+
+```{r message=FALSE, warning=FALSE}
+different_status <- gun_df %>%
+  select(incident_id, participant_status) %>%
+  transform(participant_status = strsplit(participant_status, "[||]+")) %>%
+  unnest(participant_status) %>%
+  mutate(participant_status2 = participant_status) %>%
+  separate(participant_status, c("id_participant", "participant_status"),
+           sep = "::") %>%
+  separate(participant_status2, c("id_participant2", "participant_status2"),
+           sep = ":") 
+
+unique(different_status$participant_status)
+```
+
+
+7. What percentage of all suspects got arrested? Be careful for some suspects there are more than 1 categories.
+
+Of the total 188677 suspects, 97544 were arrested, or about 51%
+```{r}
+arrested_suspects <- suspects_type %>%
+  left_join(different_status, c("incident_id", "id_participant")) %>%
+  select(incident_id, id_participant, participant_type, participant_status) %>%
+  mutate(arrested = str_count(participant_status, "Arrested"))
+
+arrested_suspects %>%
+  filter(participant_status != is.na(.)) %>%
+  group_by(participant_status) %>%
+  summarise(n = n())
+
+```
+
+# Geographic variation (15 points)
+
+1. What was the state with more incidents in 2017? Use a graph to answer this question.
+
+We create a graph that reveals Illinois had the most incidents involving gun violence in 2017.
+```{r}
+
+incidents17 <- gun_month %>% 
+  filter(year(date) == 2017) %>% 
+  group_by(state) %>% 
+  summarise(n=n()) %>% 
+  arrange(desc(n))
+
+avg <- mean(incidents17$n)
+
+incidents17 %>% 
+  ggplot(aes(x = fct_reorder(state, n), y = n)) +
+  geom_col(stats = "identity", position = "dodge", fill = "midnightblue") +
+  geom_hline(aes(yintercept = avg), color="red", alpha = 0.8) +
+  coord_flip() +
+  labs(title = "Total Gun-Related Incidents by State in 2017",
+       subtitle = "(Average in red color)",
+       x = "",
+       y = "Number of Incidents") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+    theme_minimal()
+
+```
+
+2. Use your census API to get population by state, remember to also download the geometry we will use it later. Re-do your previous plot but adjusting by population, i.e. incidents by a 100,000 inhabitants.
+
+```{r}
+census_data.sp <- get_acs(
+  geography = "state",
+  variables = c(population = "B01003_001"),
+  year = 2017, 
+  geometry = TRUE)
+
+incidents17_bypop <- left_join(census_data.sp, incidents17, by = c("NAME" = "state")) %>% 
+  mutate(incid_bypop = n*100000/estimate)
+
+incidents17_bypop %>%
+  filter(NAME != "Puerto Rico") %>% 
+  ggplot(aes(x = fct_reorder(NAME, incid_bypop ), y = incid_bypop )) +
+  geom_col( position = "dodge", fill = "midnightblue") +
+  coord_flip() +
+  labs(title = "Total Gun-Related Incidents by State in 2017 by Population",
+       x = "",
+       y = "Number of Incidents by Population") +
+    theme_minimal()
+
+```
+
+3. Show the results from your previous plot in a map
+
+```{r}
+
+incidents17_bypop_us <-  incidents17_bypop%>% 
+  filter(NAME != "Alaska") %>% 
+  filter(NAME != "Hawaii") %>% 
+  filter(NAME != "Puerto Rico")
+
+incidents17_bypop_us %>%
+  ggplot(aes(fill = incid_bypop)) +
+  geom_sf() +
+  scale_fill_viridis_c(trans = "reverse", alpha = 0.9)
+
+
+tm_shape(incidents17_bypop_us) +
+  tm_fill(col = "incid_bypop", style = "jenks",  palette ="Reds", legend.hist=TRUE) +
+  tm_borders(col = "white") +
+  ggtitle("Total Gun Incidents by U.S. State in 2017 by Population") + 
+  tm_scale_bar()
+
+
+```
+
+# Mass shootings (20 points)
+
+1. Create a new data frame of mass shootings.
+```{r}
+mass_shooting <-  gun_month %>% 
+  filter(str_detect(incident_characteristics, "Mass Shooting") == TRUE)
+```
+
+2. Show the top 15 incidents by number of victims in a map as points. The points should be proportional to the number of victims. Follow the map slides to make the map. Here are the coordinates that will give you the continental US out of the world map. Extra credit if you add state lines and change the theme of the map.
+```{r}
+mass_shooting_t15 <- mass_shooting %>% 
+  arrange(desc(n_killed)) %>% 
+  head(15)
+
+ms_t15.sp <- right_join(census_data.sp, mass_shooting_t15,  by = c("NAME" = "state"))%>% 
+  filter(NAME != "Alaska") %>% 
+  filter(NAME != "Hawaii") %>% 
+  filter(NAME != "Puerto Rico") %>% 
+  rename(state = NAME)
+
+glimpse(ms_t15.sp)
+
+locations <- ms_t15.sp %>% 
+  select(state, city_or_county, latitude, longitude, n_killed)
+
+locations.sp <- st_as_sf(locations, coords = c("longtitude", "latitude"),  remove = FALSE, crs = 4269, 
+                         agr = "constant")
+
+ggplot(incidents17_bypop_us) +
+  geom_sf() +
+  geom_sf(data = locations.sp) +
+    geom_text_repel(data = locations.sp, aes(x = longitude, y = latitude, label = city_or_county), 
+        fontface = "bold") +
+  geom_sf(data = ms_t15.sp, aes(fill = n_killed))+
+  scale_fill_viridis_c(trans = "reverse", alpha = 0.4, option = "B") +
+  geom_point(data = ms_t15.sp, aes(x = longitude, y = latitude, size = n_killed), col = "Firebrick") +
+  ggtitle("Top 15 mass shooting incidents (2013 - 2019)") + #VERIFY DATES
+  theme(panel.grid.major = element_line(color = gray(0.9), 
+        size = 0.5), panel.background = element_rect(fill = "azure"))
+```
+
+3. Use the data set you create about suspects in previous sections to explore if there are differences between the suspects of mass shootings vs other types of incidents. Compare suspects age, gender, percentage of arrested, percentage of killed and number of shooters/suspects per incident. Write a short paragraph of your findings.
+
+```{r}
+
+ms_suspects <-  gun_month %>% 
+  mutate(suspect = ifelse(str_detect(incident_characteristics, "Mass Shooting") == TRUE, "Suspect Mass Shooting", "Suspect Other Incidents")) 
+  # I think we should put a pipe here to select the variables fot the analysis, something like this:
+  # %>% select(incident_id, participant_age, participant_gender, participant_status, participant_type, n_killed, suspect)
+
+
+
+
+
+```

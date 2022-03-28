@@ -1,0 +1,596 @@
+---
+title: "Skills Problem set V"
+author: "Earnest Salgado"
+date: "18/05/2020"
+output: 
+  pdf_document:
+    number_sections: yes
+  html_document:
+    df_print: paged
+urlcolor: blue
+always_allow_html: true
+---
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+```
+
+<!-- .Rmd files use  markdown, a text mark up language, to provide formating.--> 
+<!--Text include within these strange arrows are comments and will not show up when you knit-->
+
+This submission is my work alone and complies with the 30535 integrity policy.
+
+Add your initials to indicate your agreement: **ES**
+
+Add your collaborators: **GATW**
+
+Late coins used this pset: 0. Late coins left: 6. 
+<!--You may use up to two for a given assignment.)-->
+
+# Factors (20 points)
+<!--(Notice the use of two `##`)-->
+
+1. forcats::gss_cat includes data from the General Social Survey. Explore the distribution of reported income rincome. Make a bar chart with the distribution. What makes the default bar chart hard to understand. Improve your chart.
+
+Let's first make a plot using geom_bar and its defaults:
+```{r}
+forcats::gss_cat
+
+rincome_dist <- gss_cat %>%
+  ggplot(aes(x = rincome)) + 
+  geom_bar()
+rincome_dist
+```
+
+As is, the x axis labels cannot be read as they overlap. We can improve this by re-arranging the angle of the label, or flipping the coordinates. There are a number of improvements we can do to the plot. Namely, we can rename axis labels and units to be more descriptive and helpful.
+
+```{r}
+rincome_dist + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+```{r}
+gss_cat %>%
+  mutate(rincome = fct_recode(rincome,
+    "Less than $1000" = "Lt $1000"
+  )) %>%
+  ggplot(aes(x = rincome)) +
+  geom_bar() +
+  coord_flip() +
+  scale_y_continuous("Number of Respondents", labels = scales::comma) +
+  scale_x_discrete("Respondent Income")
+
+```
+We can also choose to break out non- and not applicable responses from our rincome to clearly show in our distribution reported incomes versus non-answers:
+
+```{r}
+gss_cat %>%
+  filter(rincome != "Not applicable") %>%
+  mutate(rincome = fct_recode(rincome,
+    "Less than $1000" = "Lt $1000"
+  ))  %>%
+  mutate(rincome_noreply = rincome %in% c("Refused", "Don't know", "No answer")) %>%
+  ggplot(aes(x = rincome, fill = rincome_noreply)) +
+  geom_bar() +
+  coord_flip() +
+  scale_y_continuous("Number of Respondents", labels = scales::comma) +
+  scale_x_discrete("Respondent Income") +
+  scale_fill_manual(values = c("FALSE" = "purple", "TRUE" = "gray")) +
+  ggtitle("Distribution of Income")
+  theme(legend.position = "None")
+```
+
+2. Use a forcats command to collapse rincome into a small set of meaningful categories and remake the bar chart from above
+
+There are a few forcats commands we can use to improve and remake our bar chart. For example, we've already used fct_reorder to rename particular x-axis labels. We can also use fct_collapse to collapse rincome into as few groups as we wish. For example, we can group all non-responses together, and then group other categories into smaller numbers.
+
+```{r}
+levels(gss_cat$rincome)
+
+library("stringr")
+
+gss_cat %>%
+  filter(rincome != "Not applicable") %>%
+  mutate(rincome = fct_recode(rincome,
+    "Less than $1000" = "Lt $1000"
+  ))  %>%
+  mutate(rincome = 
+           fct_collapse(
+             rincome, 
+             `Unknown` = c("No answer", "Don't know", "Refused"),
+             `Less than $1000` = c("Less than $1000", str_c(
+               "$", c("1000", "3000", "4000"),
+               " to ", c("2999", "3999", "4999")
+               )),
+             `$5000 to 10000` = str_c(
+                 "$", c("5000", "6000", "7000", "8000"),
+                 " to ", c("5999", "6999", "7999", "9999")))) %>%
+  ggplot(aes(x = rincome)) +
+  geom_bar() +
+  coord_flip() +
+  scale_y_continuous("Number of Respondents", labels = scales::comma) +
+  scale_x_discrete("Respondent Income") 
+
+```
+
+3. There are some suspiciously high numbers in tvhours
+  a. Make a plot to examine the variable's distribution. What number do you consider to be unreasonably high
+  
+In the variable tvhours, we can use summary() to provide more information about respondent data. We observe an average of 2.981 hours of tv (and a median of 2.0) which is low to normal in my opinion. I would consider anything over 8 hours of TV as unreasonably high, since there is 24 hours in a day and roughly 8 hours is typically spent on both sleep and work, totaling 16. Spending 8+ hours watching TV means you used all of your daily "leisure" hours being a couch potato! 
+
+```{r message=FALSE, warning=FALSE}
+gss_cat %>%
+  select(tvhours) %>%
+  summary()
+
+tvhrs_dist <- gss_cat %>%
+  ggplot(aes(x = tvhours)) + 
+  geom_bar() +
+  scale_y_continuous("Number of Respondents", labels = scales::comma) +
+  scale_x_continuous("Hours Spent Watching TV per Day") 
+tvhrs_dist
+```
+
+  
+  b. Review the three options for handling outliers (drop, set missing, winsorize). What is your preferred option and why? Implement this in your code and remake the "how much TV do people watch vs religion?" plot from the slides.
+
+There's outliers essentially after 12 hours. We shall drop these then replot TV hours versus religion types:
+```{r}
+outliers <- gss_cat %>%
+  mutate(tvhours2 = ifelse(tvhours %in% c(13:24), NA, tvhours))
+```
+
+```{r}
+tvhrs_religion <- outliers %>%
+  group_by(relig) %>%
+  summarise(tvhours3 = mean(tvhours2, na.rm = TRUE)) 
+
+tvhrs_religion2 <- tvhrs_religion %>%  
+  mutate(relig2 = fct_reorder(relig, tvhours3)) 
+
+tvhrs_religion2 %>%
+  ggplot(aes(tvhours3, relig)) +
+  geom_point() 
+
+```
+  c. Add 90 percent confidence intervals using geom_linerange. Calculate standard errors √σˆ/n where σˆ is the standard deviation of each group and n is the number of observation within a group. Comment on how this changes your understanding of the plot.
+  
+The most common religions have the smallest margin of errors, which means the data is most accurate for them. The information about average tv hours for less common religions is less accurate than the more common religions.
+
+```{r}
+standard_error <- outliers %>%
+  group_by(relig) %>%
+  summarise(n = n(),
+            sd = sd(tvhours2, na.rm = TRUE),
+            se = sd/sqrt(n))
+
+tvhrs_religion2_se <- left_join(tvhrs_religion2, standard_error, by = "relig")
+
+tvhrs_religion2_se <- tvhrs_religion2_se %>%
+  mutate(min = tvhours3 - 1.96 * sd / (n) ^ (0.5),
+         max = tvhours3 + 1.96 * sd / (n) ^ (0.5))
+
+tvhrs_religion2_se %>%
+  ggplot(aes(tvhours3, relig)) +
+  geom_point() +
+  geom_linerange(aes(xmin = min, xmax = max))
+
+```
+
+# Dates (20 points)
+
+1. Use the appropriate lubridate function to parse each of the following dates:
+```{r}
+d1 <- "123-Apr-03"
+d2 <- "06-Jun-2017"
+d3 <- "12/29/14" # Dec 29, 2014
+d4 <- "November 20, 1909"
+d5 <- c("January 2 (2016)", "January 2 (2018)")
+
+library(lubridate)
+
+# If you parse a string that contains 'invalid' dates, R returns the parsed 
+# object as a Date object (so it parses it) but returns the failed string as NA. 
+# This is the case for d1
+
+ymd(d1)
+dmy(d2)
+mdy(d3)
+mdy(d4)
+mdy(d5)
+```
+
+2. Create a vector of dates giving the seventh day of every month in 2012. Create a vector of dates giving the fifth day of every month in 2020.
+
+For 2012 we write:
+```{r}
+ymd(20120107) + months(0:11)
+
+```
+And for 2020:
+```{r}
+ymd(20200105) + months(0:11)
+
+```
+The next questions rely on nycflights13::flights
+
+We first can clean the data:
+```{r}
+nycflights13::flights
+library("nycflights13")
+
+create_datetime <- function(year, month, day, time) {
+  make_datetime(year, month, day, time %/% 100, time %% 100)
+}
+
+flights2 <- flights %>%
+  filter(!is.na(dep_time), !is.na(arr_time)) %>%
+  mutate(
+    dep_time = create_datetime(year, month, day, dep_time),
+    arr_time = create_datetime(year, month, day, arr_time),
+    sched_dep_time = create_datetime(year, month, day, sched_dep_time),
+    sched_arr_time = create_datetime(year, month, day, sched_arr_time)
+  ) %>%
+  select(origin, dest, ends_with("delay"), ends_with("time"))
+
+```
+
+1. Compare dep_time, sched_dep_time, and dep_delay. It should be the case that dep_time - sched_dep_time = dep_delay. Does this hold? Be sure to use material you learned from the Dates slides/videos.
+
+```{r}
+flights2 %>%
+  mutate(dep_delay2 = (dep_time - sched_dep_time) / 60) %>%
+  filter(dep_delay2 != dep_delay) %>%
+  select(dep_delay2, dep_time, sched_dep_time, dep_delay)
+
+```
+It looks like there are mistakes in the dates. There seems to be a discrepancy for flights that flew from one day to the next, errors in either the time of scheduled versus actual departure time. Basically, the listed dates did not change for these flights when it should have.
+
+2. Make a plot with 4 lines: for each season, show the distribution of flight times within a day. How does the distribution change? (you can Google to find season start dates in 2013)
+
+```{r}
+spring <- ymd(20130320)
+summer <- ymd(20130620)
+fall <- ymd(20130921)
+winter <- ymd(20131221)
+
+flights_season <- flights2 %>%
+  mutate(season = ifelse(sched_dep_time < spring, "Winter",
+                         ifelse(sched_dep_time >= spring & sched_dep_time < summer, "Spring",
+                                ifelse(sched_dep_time >= summer & sched_dep_time < fall, "Summer",
+                                       ifelse(sched_dep_time >= fall & sched_dep_time < winter, "Fall", "Winter")))))
+
+flights_season2 <- flights_season %>%
+  mutate(hour = hour(dep_time)) %>%
+  group_by(season, hour) %>%
+  summarize(n = n())
+
+flights_season2 %>% 
+  ggplot(aes(x = hour, y = n, color = season)) +
+  geom_line() +
+  scale_y_continuous("Number of Flights", labels = scales::comma) +
+  scale_x_continuous("Hours per Day") 
+
+
+```
+We can see how it compares similarly with how flight times are distributed in a day across all calendar
+```{r}
+flights2 %>%
+  filter(!is.na(dep_time)) %>%
+  mutate(dep_hour = update(dep_time, yday = 140)) %>%
+  mutate(month = factor(month(dep_time, label = TRUE))) %>%
+  ggplot(aes(dep_hour, color = month)) +
+  geom_freqpoly(binwidth = 60 * 60) 
+
+```
+3. Which day of the week has the smallest probability of an arrival delay? Does this change if we only consider long delays? Make a plot using facets to show both plots.
+
+Saturday gives us the smallest chance of experiencing an arrival delay. This does change if we consider long delays, Tuesdays are very comparable and would be the preferred day to minimize chance of delay.
+```{r}
+flights2 %>%
+  mutate(dow = wday(sched_dep_time)) %>%
+  group_by(dow) %>%
+  summarise(
+    dep_delay = mean(dep_delay),
+    arr_delay = mean(arr_delay, na.rm = TRUE)
+  ) %>%
+  print(n = Inf)
+```
+
+```{r}
+flights2 %>%
+  group_by(day = wday(dep_time, label = TRUE, week_start = 1)) %>%
+  summarize(avg_delay = mean(dep_delay),
+            long_delay = mean(dep_delay) + mean(arr_delay)) %>%
+  ggplot(aes(day, avg_delay)) +
+  geom_line(aes(group = 1)) +
+  geom_point()
+
+```
+```{r}
+flights3 <- flights2 %>%
+  filter(!is.na(arr_delay), !is.na(arr_time)) %>%
+  mutate(weekday = wday(arr_time, label = TRUE),
+         delaytime = ifelse(arr_delay > 60, "Long Delay", "Short Delay")) %>%
+  group_by(weekday, delaytime) %>%
+  summarize(avg_delay = mean(arr_delay, na.rm = TRUE))
+
+flights3 %>%
+  ggplot(aes(x = weekday, y = avg_delay)) +
+  geom_bar(stat = "identity") 
+
+flights3 %>%
+  ggplot(aes(x = weekday, y = avg_delay)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~delaytime, scales = "free", nrow = 2)
+```
+
+# Strings + Factors + Dates (10 points)
+
+This section uses the data movielens in the package dslabs.
+
+1. Google around in order to convert the variable timestamp( represent seconds since midnight Coordinated - Universal Time (UTC) of January 1, 1970) to transform it to a date time variable. Which years does the data set covers?
+
+After converting timestamp and observing that time range, it covers 1995 to 2016. Looking at the year variable, we observe movies released as far back as 1902 to 2016.
+
+```{r}
+dslabs::movielens
+
+library(dslabs)
+movielens
+movielens_datetime <- movielens %>%
+  mutate(timestamp2 = as_datetime(timestamp))
+
+summary(movielens_datetime)
+```
+Alternative code, using as.POSIXct()
+
+```{r}
+movielens <- movielens %>%
+  mutate(timestamp = 
+           as.POSIXct(timestamp, origin = "1970-01-01", tz = "UTC")) %>%
+  arrange(desc(timestamp))
+summary(movielens)
+```
+2. How many different genres of movies are there? How many movies are classified as Horror (and/or) Sci-Fi? Which year released more of these movies compare to other genres?
+
+If we count all unique combinations of genres, there are 901 different genres in this dataset. If we examine just the different genres included in the combinations of this dataset, there are 19. We do not consider "(no genres listed)" as a genre. 
+
+As to which year had more Horror and/or Sci-Fi movies compared to other genres, in 1922 Horror was the most common movie genre in our data. In 1982, 1977, 1968, and 1927 Sci-Fi was the 2nd most common genre. There is only one movie for both 1916 and 1902, and they were both Sci-Fi films, so they technically can be mentioned among this group. 
+
+We use separate_rows() to better classify movies into the 19 genres we have. In our total list we see 15,365 Sci-Fi movies, and 6,790 Horror movies.
+```{r}
+length(unique(movielens$genres))
+
+movielens_genres <- movielens %>% 
+  separate_rows(genres, sep = "\\|") %>%
+  group_by(genres) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count))
+
+length(unique(movielens_genres$genres))
+
+movielens_years <- movielens %>% 
+  separate_rows(genres, sep = "\\|") %>%
+  group_by(year, genres) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count))
+
+```
+```{r}
+movielens_genres2 <- movielens %>% 
+  separate_rows(genres, sep = "\\|") %>%
+  mutate(genres = fct_recode(genres,
+                             "Horror or Sci-Fi" = "Horror",
+                             "Horror or Sci-Fi" = "Sci-Fi"))
+
+movielens_years3 <- movielens_genres2 %>%
+  group_by(year, genres) %>%
+  summarise(n = n())
+
+movielens_years4 <- movielens_years3 %>%
+  group_by(year) %>%
+  mutate(num_years = sum(n),
+         ratio = (n/num_years)) %>%
+  filter(genres == "Horror or Sci-Fi") %>%
+  arrange(desc(ratio)) %>%
+  head(1)
+
+```
+3. Which day of the week are there more ratings? Is this still true for Horror Sci-Fi movies? Show your results in a plot.
+
+We observe Tuesday as the day with the most ratings. When considering Horror Sci-Fi movies, we see that this is still true.
+```{r}
+movielens_day <- movielens %>%
+  mutate(weekday = wday(timestamp, label = TRUE, week_start = 1))
+
+movielens_day %>% 
+  group_by(weekday) %>% 
+  summarise(n = n()) %>% 
+  arrange(desc(n))
+
+```
+
+```{r}
+movielens_day_horrsci <- movielens_genres2 %>%
+  mutate(weekday = wday(timestamp, label = TRUE, week_start = 1))
+
+movielens_day_horrsci %>%
+  filter(genres == "Horror or Sci-Fi") %>%
+  ggplot(aes(x = weekday)) + 
+  geom_bar()
+```
+## Joins (35 points)
+
+These questions rely on nycflights13 which includes several tibbles with relational data related to the flights data.
+
+1. Compute the average delay by destination, then join on the airports data frame so you can show the spatial distribution of delays. Section 13.4.6 (exercises in the book) has code for an easy way to draw a map of the USA. You may need to install a new package. Hints for plotting: exclude airports in Alaska and Hawaii. Try using size and color of the points to display the average delay for each airport, or try something else.
+
+```{r}
+delays_bydest <- flights2 %>%
+  filter(dest != "ANC", dest != "HNL") %>%
+  group_by(dest) %>%
+  summarise(delay = mean(arr_delay, na.rm = TRUE)) %>%
+  inner_join(airports, by = c(dest = "faa"))
+
+delays_bydest %>%
+  ggplot(aes(lon, lat, colour = delay)) +
+  borders("state") +
+  geom_point() +
+  coord_quickmap()
+
+delays_bydest %>%
+  ggplot(aes(lon, lat, size = delay, colour = delay)) +
+  borders("state") +
+  geom_count() +
+  coord_quickmap()
+```
+2. Add the location of the origin and destination (i.e. lat and lon) to the flights data frame.
+
+We add locations by using left_join() for both origin and destination
+```{r}
+airport_origin_dest <- airports %>%
+  select(faa, lat, lon)
+
+flights %>%
+  select(year:day, hour, origin, dest) %>%
+  left_join(
+    airport_origin_dest,
+    by = c("origin" = "faa")
+  ) %>%
+  left_join(
+    airport_origin_dest,
+    by = c("dest" = "faa")
+  )
+```
+
+3. Is each plane flown by a single airline? How many planes change ownership within the nycflights13 dataset?
+
+We can define a change in ownership when a tailnum changes carrier. So we first find all distinct airline, plane combinations. Then we count those tailnum who appear more than once in the data to identify how many planes change ownership.
+```{r}
+plane_airlines <-
+  flights %>%
+  filter(!is.na(tailnum)) %>%
+  distinct(tailnum, carrier)
+
+plane_airlines %>%
+  count(tailnum) %>%
+  filter(n > 1) %>%
+  nrow()
+```
+We can add names of which airlines changed plans by joining our dataset with the airlines dataset.
+```{r}
+carrier_transfers <- plane_airlines %>%
+  group_by(tailnum) %>%
+  filter(n() > 1) %>%
+  left_join(airlines, by = "carrier") %>%
+  arrange(tailnum, carrier)
+```
+
+4. Is there a relationship between the age of a plane and its delays? Show your code, a plot and a couple of lines with your answer. In addition to your written answer, make the plot title be a succinct answer.
+
+The question does not specifically ask for whether the relationship is with departure delay or arrival delay. We examine both.
+
+In comparing plane age to flights delay, I merge flights with planes. To look at the relationship between plane age and departure delay, I calculate the average arrival and departure delay for each age of a flight. Since there are few planes older than 25 years, so I truncate age at 25 years.
+
+```{r}
+ageplane_relationship <- inner_join(flights,
+  select(planes, tailnum, plane_year = year),
+  by = "tailnum"
+) %>%
+  mutate(age = year - plane_year) %>%
+  filter(!is.na(age)) %>%
+  mutate(age = if_else(age > 25, 25L, age)) %>%
+  group_by(age) %>%
+  summarise(
+    dep_delay_mean = mean(dep_delay, na.rm = TRUE),
+    dep_delay_sd = sd(dep_delay, na.rm = TRUE),
+    arr_delay_mean = mean(arr_delay, na.rm = TRUE),
+    arr_delay_sd = sd(arr_delay, na.rm = TRUE),
+    n_arr_delay = sum(!is.na(arr_delay)),
+    n_dep_delay = sum(!is.na(dep_delay))
+  )
+
+```
+
+We then visualize the data by plotting age against the average departure delay. We observe departure delay times increase until the plane is about 10 years old, then decreases.
+```{r}
+ggplot(ageplane_relationship, aes(x = age, y = dep_delay_mean)) +
+  geom_point() +
+  scale_x_continuous("Age of plane (years)", breaks = seq(0, 30, by = 10)) +
+  scale_y_continuous("Mean Departure Delay (minutes)")+
+  ggtitle("Departure Delay Distribution by Plane Age")
+```
+
+There is a similar relationship in arrival delays. Delays increase with the age of the plane, until ten years, then it declines and flattens.
+```{r}
+ggplot(ageplane_relationship, aes(x = age, y = arr_delay_mean)) +
+  geom_point() +
+  scale_x_continuous("Age of Plane (years)", breaks = seq(0, 30, by = 10)) +
+  scale_y_continuous("Mean Arrival Delay (minutes)")+ 
+  ggtitle("Arrival Delay Distribution by Plane Age")
+```
+
+5. left_join the first 100 rows of a flights and weather using year. How many rows are there? How long does it take for the computer to do this join?
+
+```{r}
+weather_df <- nycflights13::weather
+
+first_100_flights <- flights %>% head(100)
+
+start.time <- Sys.time()
+
+first_100_flightsweather <- left_join(first_100_flights, weather_df, by = "year")
+
+end.time <- Sys.time()
+
+(time_diff <- end.time - start.time)
+```
+
+6. Describe the results of (but do not run it!) using left_join to merge flights and weather based on year. Without actually running the code, but using what you know about the datasets and your answer from the previous question, how many rows will there be and how long it will take to run?
+
+There are 336,776 rows in our total dataset, so if we know that it takes 0.8138239 seconds for the computer to calculate 100 rows, we can multiply that out to find the total time it would roughly take to complete all rows. We estimate it to take about 46 minutes.
+
+```{r}
+nrow(flights)
+nrow(weather_df)
+
+nrow(flights) * 0.8138239 / 100
+2740.764 / 60
+```
+7. What happened on June 13, 2013? Use facets to plot the spatial patterns of delay on the day along with a comparison plot to the "normal" delays and then use Google to cross reference with the weather. (Show your code, a plot and a couple of lines with your answer, make the plot title be a succinct answer.)
+
+We use Google to discover that there was a large series of storms in the southeastern US (link: https://en.wikipedia.org/wiki/June_12%E2%80%9313,_2013_derecho_series) The following plot show that the largest delays were in Tennessee (Nashville), the Southeast, and the Midwest, which were the locations of the storms.
+```{r}
+flights %>%
+  filter(dest != "ANC", dest != "HNL") %>%
+  filter(year == 2013, month == 6, day == 13) %>%
+  group_by(dest) %>%
+  summarise(delay = mean(arr_delay, na.rm = TRUE)) %>%
+  inner_join(airports, by = c("dest" = "faa")) %>%
+  ggplot(aes(y = lat, x = lon, size = delay, colour = delay)) +
+  borders("state") +
+  geom_point() +
+  coord_quickmap()+ 
+  ggtitle("U.S. Flight Departure Delays, June 13, 2013")
+```
+
+8. What does anti_join(flights, airports, by = c("dest" = "faa")) tell you? What does anti_join(airports, flights, by = c("faa", "dest")) tell you? 
+
+```{r}
+(antijoin_1 <- anti_join(flights_df, airports_df, by = c("dest" = "faa")))
+
+(antijoin1 <- anti_join(airports_df, flights_df, by = c("faa" = "dest")))
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+

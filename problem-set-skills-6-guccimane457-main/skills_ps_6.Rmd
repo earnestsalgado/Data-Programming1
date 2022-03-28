@@ -1,0 +1,319 @@
+---
+title: "Skills Problem Set VI"
+author: "Earnest Salgado"
+date: "25/05/2021"
+output: 
+  pdf_document:
+    number_sections: yes
+  html_document:
+    df_print: paged
+urlcolor: blue
+always_allow_html: true
+---
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(lubridate)
+```
+
+<!-- .Rmd files use  markdown, a text mark up language, to provide formating.--> 
+<!--Text include within these strange arrows are comments and will not show up when you knit-->
+
+This submission is my work alone and complies with the 30535 integrity policy.
+
+Add your initials to indicate your agreement: **ES**
+
+Add your collaborators: **GATW**
+
+Late coins used this pset: 0. Late coins left: 6. 
+<!--You may use up to two for a given assignment.)-->
+
+# Functions (15 points)
+<!--(Notice the use of two `##`)-->
+
+1. Write a function that transforms a vector c("a", "b", "c") into a string, a, b, and c (including the and!!). Think carefully about what the function should do if given a vector of length 1, 2, or 3.
+
+```{r}
+str_commasep <- function(x, delim = ",") {
+  n <- length(x)
+  if (n == 0) {
+    ""
+  } else if (n == 1) {
+    x
+  } else if (n == 2) {
+    str_c(x[[1]], "and", x[[2]], sep = " ")
+  } else {
+    not_last <- str_c(x[seq_len(n - 1)], delim)
+    last <- str_c("and", x[[n]], sep = " ")
+    str_c(c(not_last, last), collapse = " ")
+  }
+}
+```
+
+We can test that our function is doing what we want with various vectors of different lengths:
+```{r}
+str_commasep("")
+str_commasep("a")
+str_commasep(c("a", "b"))
+str_commasep(c("a", "b", "c"))
+str_commasep(c("a", "b", "c", "d"))
+str_commasep(c("a", "b", "c", "d", "e"))
+```
+2. Write a function that given your birthday (as a date), returns how old you are in years
+
+```{r}
+age <- function(bday) {
+  (bday %--% today()) %/% years(1)
+}
+age(ymd("1991-03-17"))
+```
+3. Statistical functions
+  a. Write a function to calculate the variance of a numeric vector
+  
+First I create a numeric vector x and then write my function that serves as the variance formula. Finally, we can check our 'variance' function against the calculated value from using var()
+```{r}
+y <- c(3, 6, 9, 17, 19, 25, 6)
+
+variance <- function(x, na.rm = TRUE) {
+  n <- length(x)
+  m <- mean(x, na.rm = TRUE)
+  sq_err <- (x - m)^2
+  sum(sq_err) / (n - 1)
+}
+
+var(y)
+variance(y)
+```
+  b. Write a function to calculate the skewness of a numeric vector
+```{r}
+skew <- c(1, 6, 19, 263)
+skewness <- function(x, na.rm = FALSE) {
+  n <- length(x)
+  m <- mean(x, na.rm = na.rm)
+  v <- var(x, na.rm = na.rm)
+  (sum((x - m) ^ 3) / (n - 2)) / v ^ (3 / 2)
+}
+
+skewness(skew)
+```
+Since there are multiple definitions for skewness, we could alternatively calculate it with this function:
+```{r}
+skewness2 <- function(x) {
+    n <- length(x)
+    mean_x <- mean(x)
+    sd_x <- sqrt(sum((x - mean_x)^2) / (n))
+    z <- (x - mean_x) / sd_x
+
+skewness2 <- sum(z^3) / n
+skewness2
+}
+print(skewness2(skew))
+```
+  c. Use summarize_if() to calculate the mean, variance, and skewness of all numeric columns in the diamond dataset. Then, tidy the table so we have one row for each variable. (Hint: summarize_if() takes a boolean in the first position and a named vector of functions in the second position.)
+
+```{r}
+summarizeif <- function(x)  {
+      diamond_mean <- summarise_if(x, is.numeric, mean, na.rm=TRUE)
+      diamond_var <- summarise_if(x, is.numeric, variance, na.rm=TRUE)
+      diamond_skw <- summarise_if(x, is.numeric, skewness, na.rm=TRUE)
+      rbind(diamond_mean, diamond_var, diamond_skw)
+}
+summarizeif(diamonds)
+
+```
+
+4. Rename the following functions to better reflect their purpose
+
+The function 'f' identifies whether each element of the character vector `nchar`
+starts with a common string, in this case it is `prefix`. You could rename this as has_prefix. The function 'g' drops the last element, so a better name could be drop_last.
+```{r}
+f <- function(string, prefix){
+  str_sub(string, 1, nchar(prefix)) == prefix
+}
+
+g <- function(x){
+  if (length(x) <= 1)return(NULL)
+  x[-length(x)]
+}
+
+```
+Examples:
+```{r}
+has_prefix <- f
+drop_last <- g
+
+has_prefix(c("morning", "sun", "moon", "yellow"), "mo")
+drop_last(c(0, 1, 2, 3, 5))
+```
+5. Write a greeting function that says "good morning", "good afternoon", or "good evening", depending on the time of day. (Hint: use a time argument that defaults to lubridate::now(). That will make it easier to test your function.)
+
+```{r}
+greetings=function(time=lubridate::now())
+  {
+}
+
+
+greeting <- function(time_now = lubridate::now()) {
+  hour_now <- lubridate::hour(time_now)
+  
+  if (hour_now < 12) {
+    "good morning"
+  } else if (hour_now < 18) {
+    "good afternoon"
+  } else {
+    "good night"
+  }
+}
+greeting()
+
+```
+
+# For Loops (35 points)
+
+1. Write for loops to
+  a. Compute the mean of every column in mtcars
+```{r}
+meancols_mtcars <- vector("double", ncol(mtcars))
+    names(meancols_mtcars) <- names(mtcars)
+    for (i in names(mtcars)) {
+      meancols_mtcars[i] <- mean(mtcars[[i]])
+    }
+    meancols_mtcars
+```
+
+  b. Compute the number of unique values in each column of mpg
+```{r}
+ data("mpg")
+    mpg_uniq <- vector("double", ncol(mpg))
+    names(mpg_uniq) <- names(mpg)
+    for (i in names(mpg)) {
+      mpg_uniq[i] <- n_distinct(mpg[[i]])
+    }
+    mpg_uniq
+```
+  c. Generate 10 random points distributed poissons (rpois) for each $\lambda$ = 1, 3, 10, 30 and 100. Think about the output, sequence, and body before you start writing the loop.
+```{r}
+lambda_vector <- c(1, 3, 10, 30, 100)
+
+rpois_fct <- matrix("double", nrow = 10, ncol = 5)
+for (i in seq_along(lambda_vector)) {
+  rpois_fct[,i] <- rpois(10, lambda = lambda_vector[[i]])
+}
+rpois_fct
+
+```
+2. Imagine you have a directory full of CSV files that you want to read in. files <- dir("data/", pattern = "\\.csv$", full.names = TRUE), and now want to read each one with read_csv(). Write a for loop that will load them into a single data frame (you do not need to run anything just write code)
+
+```{r}
+files <- dir("data/", pattern = "\\.csv$", full.names = TRUE)
+files
+
+df_list <- vector("list", length(files))
+for (i in seq_along(files)) {
+  df_list[[i]] <- read_csv(files[[i]])
+}
+
+print(df_list)
+df <- bind_rows(df_list)
+
+```
+3. Write a function that prints the mean of each numeric column in a data frame, along with its name. For example show_mean(iris) would print:
+```{r}
+# show_mean(iris)
+## [1] "Sepal.Length : 5.84333333333333"
+## [1] "Sepal.Width : 3.05733333333333"
+## [1] "Petal.Length : 3.758"
+## [1] "Petal.Width : 1.19933333333333"
+```
+```{r}
+show_mean <- function(df, digits = 2) {
+
+  maxstr <- max(str_length(names(df)))
+  for (nm in names(df)) {
+    if (is.numeric(df[[nm]])) {
+      cat(
+        str_c(str_pad(str_c(nm, ":"), maxstr + 1L, side = "right"),
+          format(mean(df[[nm]]), digits = digits, nsmall = digits),
+          sep = " "
+        ),
+        "\n"
+      )
+    }
+  }
+}
+
+show_mean(iris)
+```
+```{r}
+names_mean <- function(df) {
+  df2 <- (select_if(df, is.numeric))
+  
+  output <- vector("double", ncol(df2)) 
+  
+  for (i in seq_along(df2)){
+    v_names <- names(df2[,i])
+    v_mean <- mean(df2[[i]], na.rm = TRUE)
+    output [[i]]<- str_c(v_names, v_mean, sep = " : ") 
+  }
+  output
+}
+
+(names_mean(mpg))
+
+```
+4. Write code that uses one of the map function to:
+  a. Compute the mean of every column in mtcars
+```{r}
+map_dbl(mtcars, mean)
+```
+
+  b. Compute the number of unique values in each column in mpg
+
+Out of curiosity I pulled the types of each variable. I believe we can also use map_dbl(iris, n_distinct) to return number of unique values.
+```{r}
+map_chr(mpg, typeof)
+
+map_int(iris, n_distinct)
+```
+
+  c. Generate 10 random poissons (rpois) for each $\lambda$ = 1, 3, 10, 30 and 100
+```{r}
+v_pois <- map(mtcars, ~ rpois(10, lambda = 100))
+v_pois
+```
+
+5. Repeat question 2 using the map function. (The csv one)
+
+```{r}
+files <- dir("data/", pattern = "\\.csv$", full.names = TRUE)
+files
+
+read_files <- map_dbl(files, ~read.csv)
+```
+6. What happens when we use the map functions on vectors that aren't lists. Use the following vector for the next section:
+```{r}
+five_squares <- (1:5)^2
+five_squares
+```
+  a. Describe the output of using on a list map(list(five_squares),rnorm). Explain why the output turns out this way.
+
+The output is this way because five_squares is no longer being read as a vector, but as a list. This means the function rnorm will only be run 5 times, through the list of objects within five_squares.
+```{r}
+map(list(five_squares),rnorm)
+```
+  b. What does map(five_squares,rnorm) do? Why?
+
+This output computes normal distributions for the vector five_squares. As it generates, it takes each object as its parameter. So at five_squares[[1]], it is only 1 so the list is one value long. It continues until finally at five_squares[[5]], it identifies n = 25 so that particular list is 25 values long.
+```{r}
+map(five_squares,rnorm)
+```
+  c. What does map(five_squares, rnorm, n = 5) do? Why?
+
+This output is the list of vectors rnorm(five_squares[[1]], n=5), rnorm(five_squares[[2]], n=5), rnorm(five_squares[[3]], n=5), rnorm(five_squares[[4]], n=5), rnorm(five_squares[[5]], n=5). It will perform the operation rnorm at each object in the vector, in our case 1 through 5, thus why its returning an output n = 5 times at each object.
+```{r}
+map(five_squares, rnorm, n = 5)
+```
+
+
+
+
+
